@@ -1,7 +1,9 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.PROD
+    ? 'https://glory82-admin-backend-production.up.railway.app/api'
+    : '/api',
 })
 
 export const productsApi = {
