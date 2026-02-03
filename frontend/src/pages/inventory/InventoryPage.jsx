@@ -137,18 +137,18 @@ export default function InventoryPage() {
     'rounded-md ring-1 ring-(--color-border-base) bg-white px-3 py-1.5 text-sm text-(--color-text-base) focus:outline-none focus:ring-2 focus:ring-(--color-primary)'
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 md:space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-(--color-text-base)">
+          <h1 className="text-lg md:text-xl font-semibold text-(--color-text-base)">
             Inventory
           </h1>
           <p className="text-sm text-(--color-text-subtle) mt-0.5">
             {total} product{total !== 1 ? 's' : ''} in catalog
           </p>
         </div>
-        <Button variant="primary" onClick={handleCreate}>
+        <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
           <Plus className="w-4 h-4" />
           Add Product
         </Button>
@@ -156,7 +156,7 @@ export default function InventoryPage() {
 
       {/* Filters */}
       <Container className="p-3!">
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 flex-wrap">
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}

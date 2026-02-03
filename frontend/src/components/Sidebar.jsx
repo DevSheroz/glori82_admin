@@ -19,27 +19,30 @@ const navItems = [
   { to: '/shipments', label: 'Shipments', icon: Truck },
 ]
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }) {
+  // On mobile, always show full sidebar (not collapsed)
+  const isCollapsed = isMobile ? false : collapsed
+
   return (
     <aside
       className={`${
-        collapsed ? 'w-16' : 'w-60'
-      } shrink-0 bg-white border-r border-(--color-border-base) flex flex-col z-30 transition-all duration-300`}
+        isCollapsed ? 'w-16' : 'w-60'
+      } h-full shrink-0 bg-white border-r border-(--color-border-base) flex flex-col z-30 transition-all duration-300`}
     >
       <div className="h-14 flex items-center justify-between px-3 border-b border-(--color-border-base)">
-        {!collapsed && (
+        {!isCollapsed && (
           <span className="text-base font-semibold text-(--color-text-base) tracking-tight pl-2">
-            glor82 Admin
+            glori82 Admin
           </span>
         )}
         <button
-          onClick={onToggle}
+          onClick={isMobile ? onMobileClose : onToggle}
           className={`p-2 rounded-md text-(--color-text-subtle) hover:bg-(--color-bg-subtle) hover:text-(--color-text-base) transition-colors ${
-            collapsed ? 'mx-auto' : ''
+            isCollapsed ? 'mx-auto' : ''
           }`}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          title={isMobile ? 'Close menu' : isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
-          {collapsed ? (
+          {isCollapsed ? (
             <Menu className="w-5 h-5" strokeWidth={2} />
           ) : (
             <X className="w-5 h-5" strokeWidth={2} />
@@ -51,9 +54,10 @@ export default function Sidebar({ collapsed, onToggle }) {
           <NavLink
             key={item.to}
             to={item.to}
-            title={collapsed ? item.label : undefined}
+            onClick={onMobileClose}
+            title={isCollapsed ? item.label : undefined}
             className={({ isActive }) =>
-              `flex items-center ${collapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              `flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 isActive
                   ? 'bg-(--color-bg-component) text-(--color-text-base)'
                   : 'text-(--color-text-subtle) hover:bg-(--color-bg-subtle) hover:text-(--color-text-base)'
@@ -61,7 +65,7 @@ export default function Sidebar({ collapsed, onToggle }) {
             }
           >
             <item.icon className="w-4 h-4 shrink-0" strokeWidth={2} />
-            {!collapsed && item.label}
+            {!isCollapsed && item.label}
           </NavLink>
         ))}
       </nav>

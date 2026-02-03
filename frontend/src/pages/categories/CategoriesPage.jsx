@@ -92,18 +92,18 @@ export default function CategoriesPage() {
   })
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4 md:space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-semibold text-(--color-text-base)">
+          <h1 className="text-lg md:text-xl font-semibold text-(--color-text-base)">
             Categories
           </h1>
           <p className="text-sm text-(--color-text-subtle) mt-0.5">
             {total} categor{total !== 1 ? 'ies' : 'y'}
           </p>
         </div>
-        <Button variant="primary" onClick={handleCreate}>
+        <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
           <Plus className="w-4 h-4" />
           Add Category
         </Button>

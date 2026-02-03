@@ -168,7 +168,7 @@ export default function ProductModal({
         {categoryAttributes.length > 0 && (
           <div>
             <label className={labelClass}>Attributes</label>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {categoryAttributes.map((attr) => (
                 <div key={attr.attribute_id}>
                   <label className={labelClass}>{attr.attribute_name}</label>
@@ -196,7 +196,7 @@ export default function ProductModal({
           />
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div>
             <label className={labelClass}>Cost Price (KRW)</label>
             <input
@@ -238,7 +238,7 @@ export default function ProductModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className={labelClass}>Weight (g)</label>
             <input
@@ -265,7 +265,7 @@ export default function ProductModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className={labelClass}>Stock Quantity</label>
             <input

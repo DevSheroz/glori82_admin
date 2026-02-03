@@ -8,11 +8,11 @@ export default function Pagination({ page, pageSize, total, onChange }) {
   const to = Math.min(page * pageSize, total)
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-(--color-border-base)">
+    <div className="flex items-center justify-between px-3 md:px-4 py-3 border-t border-(--color-border-base)">
       <span className="text-xs text-(--color-text-muted)">
         {from}–{to} of {total}
       </span>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 md:gap-1">
         <button
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
@@ -20,28 +20,34 @@ export default function Pagination({ page, pageSize, total, onChange }) {
         >
           <ChevronLeft className="w-4 h-4" />
         </button>
-        {buildPageNumbers(page, totalPages).map((p, i) =>
-          p === '...' ? (
-            <span
-              key={`dots-${i}`}
-              className="px-1 text-xs text-(--color-text-muted)"
-            >
-              ...
-            </span>
-          ) : (
-            <button
-              key={p}
-              onClick={() => onChange(p)}
-              className={`min-w-7 h-7 rounded-md text-xs font-medium cursor-pointer transition-colors ${
-                p === page
-                  ? 'bg-(--color-primary) text-white'
-                  : 'text-(--color-text-subtle) hover:bg-(--color-bg-subtle)'
-              }`}
-            >
-              {p}
-            </button>
-          ),
-        )}
+        {/* Show simplified pagination on mobile */}
+        <span className="md:hidden text-xs text-(--color-text-subtle) px-2">
+          {page} / {totalPages}
+        </span>
+        <div className="hidden md:flex items-center gap-1">
+          {buildPageNumbers(page, totalPages).map((p, i) =>
+            p === '...' ? (
+              <span
+                key={`dots-${i}`}
+                className="px-1 text-xs text-(--color-text-muted)"
+              >
+                ...
+              </span>
+            ) : (
+              <button
+                key={p}
+                onClick={() => onChange(p)}
+                className={`min-w-7 h-7 rounded-md text-xs font-medium cursor-pointer transition-colors ${
+                  p === page
+                    ? 'bg-(--color-primary) text-white'
+                    : 'text-(--color-text-subtle) hover:bg-(--color-bg-subtle)'
+                }`}
+              >
+                {p}
+              </button>
+            ),
+          )}
+        </div>
         <button
           disabled={page >= totalPages}
           onClick={() => onChange(page + 1)}

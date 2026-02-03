@@ -20,7 +20,7 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
   return (
     <Modal open={open} onClose={onClose} title={shipment.shipment_number} size="xl">
       {/* Summary header */}
-      <div className="grid grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
         <div>
           <span className="text-[10px] text-(--color-text-muted) block">Status</span>
           <div className="mt-1">{getStatusBadge(shipment.status)}</div>
@@ -55,8 +55,8 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
         <span className="text-xs font-medium text-(--color-text-subtle) block mb-2">
           Orders ({shipment.order_count})
         </span>
-        <div className="rounded-md ring-1 ring-(--color-border-base) overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="rounded-md ring-1 ring-(--color-border-base) overflow-x-auto">
+          <table className="w-full text-sm min-w-[600px]">
             <thead>
               <tr className="border-b border-(--color-border-base) bg-(--color-bg-subtle)">
                 <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">

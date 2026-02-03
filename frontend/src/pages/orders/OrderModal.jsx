@@ -277,7 +277,7 @@ export default function OrderModal({
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
             <label className={labelClass}>Customer</label>
             <SearchSelect
@@ -334,112 +334,212 @@ export default function OrderModal({
             </button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {form.items.map((item, index) => {
               const opts = rowOptions[index] || { brands: [], products: [] }
               return (
                 <div
                   key={index}
-                  className="grid grid-cols-[1fr_1fr_1fr_60px_90px_90px_28px] gap-2 items-end"
+                  className="relative p-3 sm:p-0 rounded-md sm:rounded-none bg-(--color-bg-subtle) sm:bg-transparent"
                 >
-                  <div>
-                    {index === 0 && (
-                      <span className="text-[10px] text-(--color-text-muted)">Category</span>
-                    )}
-                    <select
-                      value={item.category_id}
-                      onChange={(e) => handleCategoryChange(index, e.target.value)}
-                      className={inputClass + ' py-1.5 text-xs'}
-                    >
-                      <option value="">Category...</option>
-                      {categories.map((c) => (
-                        <option key={c.category_id} value={c.category_id}>
-                          {c.category_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    {index === 0 && (
-                      <span className="text-[10px] text-(--color-text-muted)">Brand</span>
-                    )}
-                    <select
-                      value={item.brand}
-                      onChange={(e) => handleBrandChange(index, e.target.value, item.category_id)}
-                      disabled={!item.category_id}
-                      className={inputClass + ' py-1.5 text-xs disabled:opacity-50'}
-                    >
-                      <option value="">Brand...</option>
-                      {opts.brands.map((b) => (
-                        <option key={b} value={b}>
-                          {b}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div>
-                    {index === 0 && (
+                  {/* Mobile: Card layout */}
+                  <div className="sm:hidden space-y-2">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs font-medium text-(--color-text-subtle)">Item {index + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeItem(index)}
+                        className="p-1 rounded-md text-(--color-text-muted) hover:text-(--color-danger) hover:bg-red-50 transition-colors cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <span className="text-[10px] text-(--color-text-muted)">Category</span>
+                        <select
+                          value={item.category_id}
+                          onChange={(e) => handleCategoryChange(index, e.target.value)}
+                          className={inputClass + ' py-1.5 text-xs'}
+                        >
+                          <option value="">Category...</option>
+                          {categories.map((c) => (
+                            <option key={c.category_id} value={c.category_id}>
+                              {c.category_name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-(--color-text-muted)">Brand</span>
+                        <select
+                          value={item.brand}
+                          onChange={(e) => handleBrandChange(index, e.target.value, item.category_id)}
+                          disabled={!item.category_id}
+                          className={inputClass + ' py-1.5 text-xs disabled:opacity-50'}
+                        >
+                          <option value="">Brand...</option>
+                          {opts.brands.map((b) => (
+                            <option key={b} value={b}>
+                              {b}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div>
                       <span className="text-[10px] text-(--color-text-muted)">Item</span>
-                    )}
-                    <select
-                      value={item.product_id}
-                      onChange={(e) => handleProductChange(index, e.target.value)}
-                      disabled={!item.brand}
-                      className={inputClass + ' py-1.5 text-xs disabled:opacity-50'}
+                      <select
+                        value={item.product_id}
+                        onChange={(e) => handleProductChange(index, e.target.value)}
+                        disabled={!item.brand}
+                        className={inputClass + ' py-1.5 text-xs disabled:opacity-50'}
+                      >
+                        <option value="">Item...</option>
+                        {opts.products.map((p) => (
+                          <option key={p.product_id} value={p.product_id}>
+                            {p.product_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <span className="text-[10px] text-(--color-text-muted)">Qty</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => handleQuantityChange(index, e.target.value)}
+                          className={inputClass + ' py-1.5 text-xs'}
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-(--color-text-muted)">USD</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={item.selling_price}
+                          onChange={(e) => handlePriceChange(index, 'selling_price', e.target.value)}
+                          placeholder="0.00"
+                          className={inputClass + ' py-1.5 text-xs'}
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-(--color-text-muted)">UZS</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={item.selling_price_uzs}
+                          onChange={(e) => handlePriceChange(index, 'selling_price_uzs', e.target.value)}
+                          placeholder="0"
+                          className={inputClass + ' py-1.5 text-xs'}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop: Grid layout */}
+                  <div className="hidden sm:grid grid-cols-[1fr_1fr_1fr_60px_90px_90px_28px] gap-2 items-end">
+                    <div>
+                      {index === 0 && (
+                        <span className="text-[10px] text-(--color-text-muted)">Category</span>
+                      )}
+                      <select
+                        value={item.category_id}
+                        onChange={(e) => handleCategoryChange(index, e.target.value)}
+                        className={inputClass + ' py-1.5 text-xs'}
+                      >
+                        <option value="">Category...</option>
+                        {categories.map((c) => (
+                          <option key={c.category_id} value={c.category_id}>
+                            {c.category_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      {index === 0 && (
+                        <span className="text-[10px] text-(--color-text-muted)">Brand</span>
+                      )}
+                      <select
+                        value={item.brand}
+                        onChange={(e) => handleBrandChange(index, e.target.value, item.category_id)}
+                        disabled={!item.category_id}
+                        className={inputClass + ' py-1.5 text-xs disabled:opacity-50'}
+                      >
+                        <option value="">Brand...</option>
+                        {opts.brands.map((b) => (
+                          <option key={b} value={b}>
+                            {b}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      {index === 0 && (
+                        <span className="text-[10px] text-(--color-text-muted)">Item</span>
+                      )}
+                      <select
+                        value={item.product_id}
+                        onChange={(e) => handleProductChange(index, e.target.value)}
+                        disabled={!item.brand}
+                        className={inputClass + ' py-1.5 text-xs disabled:opacity-50'}
+                      >
+                        <option value="">Item...</option>
+                        {opts.products.map((p) => (
+                          <option key={p.product_id} value={p.product_id}>
+                            {p.product_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      {index === 0 && (
+                        <span className="text-[10px] text-(--color-text-muted)">Qty</span>
+                      )}
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => handleQuantityChange(index, e.target.value)}
+                        className={inputClass + ' py-1.5 text-xs'}
+                      />
+                    </div>
+                    <div>
+                      {index === 0 && (
+                        <span className="text-[10px] text-(--color-text-muted)">Price (USD)</span>
+                      )}
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.selling_price}
+                        onChange={(e) => handlePriceChange(index, 'selling_price', e.target.value)}
+                        placeholder="0.00"
+                        className={inputClass + ' py-1.5 text-xs'}
+                      />
+                    </div>
+                    <div>
+                      {index === 0 && (
+                        <span className="text-[10px] text-(--color-text-muted)">Price (UZS)</span>
+                      )}
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.selling_price_uzs}
+                        onChange={(e) => handlePriceChange(index, 'selling_price_uzs', e.target.value)}
+                        placeholder="0"
+                        className={inputClass + ' py-1.5 text-xs'}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(index)}
+                      className="p-1.5 rounded-md text-(--color-text-muted) hover:text-(--color-danger) hover:bg-red-50 transition-colors cursor-pointer"
                     >
-                      <option value="">Item...</option>
-                      {opts.products.map((p) => (
-                        <option key={p.product_id} value={p.product_id}>
-                          {p.product_name}
-                        </option>
-                      ))}
-                    </select>
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                  <div>
-                    {index === 0 && (
-                      <span className="text-[10px] text-(--color-text-muted)">Qty</span>
-                    )}
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => handleQuantityChange(index, e.target.value)}
-                      className={inputClass + ' py-1.5 text-xs'}
-                    />
-                  </div>
-                  <div>
-                    {index === 0 && (
-                      <span className="text-[10px] text-(--color-text-muted)">Price (USD)</span>
-                    )}
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.selling_price}
-                      onChange={(e) => handlePriceChange(index, 'selling_price', e.target.value)}
-                      placeholder="0.00"
-                      className={inputClass + ' py-1.5 text-xs'}
-                    />
-                  </div>
-                  <div>
-                    {index === 0 && (
-                      <span className="text-[10px] text-(--color-text-muted)">Price (UZS)</span>
-                    )}
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={item.selling_price_uzs}
-                      onChange={(e) => handlePriceChange(index, 'selling_price_uzs', e.target.value)}
-                      placeholder="0"
-                      className={inputClass + ' py-1.5 text-xs'}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => removeItem(index)}
-                    className="p-1.5 rounded-md text-(--color-text-muted) hover:text-(--color-danger) hover:bg-red-50 transition-colors cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
                 </div>
               )
             })}
