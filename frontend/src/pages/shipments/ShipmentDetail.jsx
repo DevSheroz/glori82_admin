@@ -1,0 +1,119 @@
+import Modal from '../../components/Modal'
+import Badge from '../../components/Badge'
+
+function getStatusBadge(status) {
+  switch (status) {
+    case 'pending':
+      return <Badge variant="warning">Pending</Badge>
+    case 'shipped':
+      return <Badge variant="info">Shipped</Badge>
+    case 'delivered':
+      return <Badge variant="success">Delivered</Badge>
+    default:
+      return <Badge variant="neutral">{status}</Badge>
+  }
+}
+
+export default function ShipmentDetail({ open, onClose, shipment }) {
+  if (!shipment) return null
+
+  return (
+    <Modal open={open} onClose={onClose} title={shipment.shipment_number} size="xl">
+      {/* Summary header */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div>
+          <span className="text-[10px] text-(--color-text-muted) block">Status</span>
+          <div className="mt-1">{getStatusBadge(shipment.status)}</div>
+        </div>
+        <div>
+          <span className="text-[10px] text-(--color-text-muted) block">Total Weight</span>
+          <span className="text-sm font-semibold text-(--color-text-base) tabular-nums">
+            {Number(shipment.total_weight_kg).toFixed(2)} kg
+          </span>
+        </div>
+        <div>
+          <span className="text-[10px] text-(--color-text-muted) block">Date</span>
+          <span className="text-sm text-(--color-text-base)">
+            {new Date(shipment.created_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </span>
+        </div>
+      </div>
+
+      {shipment.notes && (
+        <div className="mb-5">
+          <span className="text-[10px] text-(--color-text-muted) block mb-1">Notes</span>
+          <p className="text-sm text-(--color-text-subtle)">{shipment.notes}</p>
+        </div>
+      )}
+
+      {/* Orders table */}
+      <div>
+        <span className="text-xs font-medium text-(--color-text-subtle) block mb-2">
+          Orders ({shipment.order_count})
+        </span>
+        <div className="rounded-md ring-1 ring-(--color-border-base) overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-(--color-border-base) bg-(--color-bg-subtle)">
+                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                  Order #
+                </th>
+                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                  Customer
+                </th>
+                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                  Items
+                </th>
+                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                  Total (UZS)
+                </th>
+                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                  Weight
+                </th>
+                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                  Shipping (UZS)
+                </th>
+                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                  Order Total (UZS)
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-(--color-border-base)">
+              {shipment.orders?.map((order) => (
+                <tr key={order.order_id} className="hover:bg-(--color-bg-subtle)">
+                  <td className="px-3 py-2 font-medium text-(--color-text-base)">
+                    {order.order_number}
+                  </td>
+                  <td className="px-3 py-2 text-(--color-text-subtle)">
+                    {order.customer_name || '—'}
+                  </td>
+                  <td className="px-3 py-2 text-(--color-text-subtle)">
+                    {order.items_summary || '—'}
+                  </td>
+                  <td className="px-3 py-2 tabular-nums">
+                    {order.total_amount_uzs != null
+                      ? Number(order.total_amount_uzs).toLocaleString()
+                      : '—'}
+                  </td>
+                  <td className="px-3 py-2 tabular-nums">
+                    {Number(order.weight_kg).toFixed(2)} kg
+                  </td>
+                  <td className="px-3 py-2 tabular-nums">
+                    {Number(order.shipping_fee_uzs).toLocaleString()}
+                  </td>
+                  <td className="px-3 py-2 tabular-nums font-medium">
+                    {Number(order.order_total_uzs).toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </Modal>
+  )
+}
