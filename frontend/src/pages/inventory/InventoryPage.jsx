@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Package } from 'lucide-react'
+import { Plus, Package, Pencil, Trash2, X } from 'lucide-react'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
 import Table from '../../components/Table'
@@ -34,6 +34,9 @@ export default function InventoryPage() {
   const [editingProduct, setEditingProduct] = useState(null)
   const [saving, setSaving] = useState(false)
 
+  // Selection
+  const [selectedIds, setSelectedIds] = useState(new Set())
+
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState(null)
 
@@ -55,6 +58,7 @@ export default function InventoryPage() {
       ])
       setProducts(productsRes.data.data)
       setTotal(productsRes.data.total)
+      setSelectedIds(new Set())
       setCategories(categoriesRes.data.data)
     } catch (err) {
       setError('Failed to load data. Make sure the backend is running.')
@@ -73,9 +77,13 @@ export default function InventoryPage() {
     setPage(1)
   }, [filterCategory, filterActive])
 
-  const handleEdit = (product) => {
-    setEditingProduct(product)
-    setModalOpen(true)
+  const handleEditSelected = () => {
+    const productId = [...selectedIds][0]
+    const product = products.find((p) => p.product_id === productId)
+    if (product) {
+      setEditingProduct(product)
+      setModalOpen(true)
+    }
   }
 
   const handleCreate = () => {
@@ -102,15 +110,15 @@ export default function InventoryPage() {
     }
   }
 
-  const handleDelete = async () => {
+  const handleBulkDelete = async () => {
     if (!deleteTarget) return
     try {
-      await productsApi.delete(deleteTarget.product_id)
+      await Promise.all(deleteTarget.map((id) => productsApi.delete(id)))
       setDeleteTarget(null)
       fetchData()
     } catch (err) {
       console.error('Delete failed:', err)
-      alert('Failed to delete product.')
+      alert('Failed to delete products.')
     }
   }
 
@@ -124,13 +132,32 @@ export default function InventoryPage() {
     setPage(1)
   }
 
+  const toggleSelect = (productId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(productId)) next.delete(productId)
+      else next.add(productId)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (selectedIds.size === products.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(products.map((p) => p.product_id)))
+    }
+  }
+
   const columns = getColumns({
     categories,
-    onEdit: handleEdit,
-    onDelete: (product) => setDeleteTarget(product),
     sortBy,
     sortDir,
     onSort: handleSort,
+    selectedIds,
+    onToggleSelect: toggleSelect,
+    onToggleAll: toggleAll,
+    allSelected: products.length > 0 && selectedIds.size === products.length,
   })
 
   const selectClass =
@@ -193,6 +220,39 @@ export default function InventoryPage() {
           )}
         </div>
       </Container>
+
+      {/* Bulk Actions */}
+      {selectedIds.size > 0 && (
+        <Container className="p-3!">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-(--color-text-base)">
+              {selectedIds.size} selected
+            </span>
+            <div className="flex items-center gap-2">
+              {selectedIds.size === 1 && (
+                <Button variant="secondary" size="sm" onClick={handleEditSelected}>
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
+                </Button>
+              )}
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setDeleteTarget([...selectedIds])}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete ({selectedIds.size})
+              </Button>
+            </div>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="ml-auto text-xs text-(--color-text-subtle) hover:text-(--color-text-base) cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </Container>
+      )}
 
       {/* Table */}
       <Container className="p-0!">
@@ -258,12 +318,14 @@ export default function InventoryPage() {
           />
           <div className="relative bg-white rounded-lg ring-1 ring-(--color-border-base) shadow-lg w-full max-w-sm mx-4 p-5">
             <h3 className="text-base font-semibold text-(--color-text-base) mb-2">
-              Delete Product
+              Delete {deleteTarget.length === 1 ? 'Product' : `${deleteTarget.length} Products`}
             </h3>
             <p className="text-sm text-(--color-text-subtle) mb-5">
               Are you sure you want to delete{' '}
               <span className="font-medium text-(--color-text-base)">
-                {deleteTarget.product_name}
+                {deleteTarget.length === 1
+                  ? products.find((p) => p.product_id === deleteTarget[0])?.product_name
+                  : `${deleteTarget.length} products`}
               </span>
               ? This action cannot be undone.
             </p>
@@ -271,7 +333,7 @@ export default function InventoryPage() {
               <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
                 Cancel
               </Button>
-              <Button variant="danger" onClick={handleDelete}>
+              <Button variant="danger" onClick={handleBulkDelete}>
                 Delete
               </Button>
             </div>

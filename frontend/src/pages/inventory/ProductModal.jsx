@@ -2,6 +2,12 @@ import { useState, useEffect } from 'react'
 import Modal from '../../components/Modal'
 import Button from '../../components/Button'
 
+const STOCK_STATUSES = [
+  { value: 'in_stock', label: 'In Stock' },
+  { value: 'out_of_stock', label: 'Out of Stock' },
+  { value: 'pre_order', label: 'Pre-order' },
+]
+
 const initialForm = {
   product_name: '',
   brand: '',
@@ -14,6 +20,7 @@ const initialForm = {
   volume_ml: '',
   stock_quantity: '',
   reorder_level: '',
+  stock_status: 'in_stock',
   is_active: true,
 }
 
@@ -42,6 +49,7 @@ export default function ProductModal({
         volume_ml: product.volume_ml ?? '',
         stock_quantity: product.stock_quantity ?? '',
         reorder_level: product.reorder_level ?? '',
+        stock_status: product.stock_status ?? 'in_stock',
         is_active: product.is_active ?? true,
       })
       const vals = {}
@@ -265,7 +273,7 @@ export default function ProductModal({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div>
             <label className={labelClass}>Stock Quantity</label>
             <input
@@ -289,6 +297,21 @@ export default function ProductModal({
               className={inputClass}
               placeholder="0"
             />
+          </div>
+          <div>
+            <label className={labelClass}>Stock Status</label>
+            <select
+              name="stock_status"
+              value={form.stock_status}
+              onChange={handleChange}
+              className={inputClass}
+            >
+              {STOCK_STATUSES.map((s) => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 

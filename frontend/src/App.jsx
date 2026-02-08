@@ -21,7 +21,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<Layout />}>
-          <Route index element={<Navigate to="/inventory" replace />} />
+          <Route index element={<Navigate to="/orders" replace />} />
           <Route path="inventory" element={<InventoryPage />} />
           <Route path="dashboard" element={<Placeholder title="Dashboard" />} />
           <Route path="orders" element={<OrdersPage />} />

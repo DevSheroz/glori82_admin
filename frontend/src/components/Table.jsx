@@ -1,7 +1,7 @@
 export default function Table({ columns, data, onRowClick }) {
   return (
     <div className="overflow-x-auto">
-      <div className="max-h-[calc(100vh-220px)] md:max-h-[calc(100vh-220px)] overflow-y-auto min-w-[600px]">
+      <div className="max-h-[calc(100vh-220px)] md:max-h-[calc(100vh-220px)] overflow-y-auto min-w-150">
         <table className="w-full text-sm">
           <thead className="sticky top-0 z-10">
             <tr className="border-b-2 border-(--color-border-base) bg-(--color-bg-subtle) shadow-[0_1px_3px_rgba(0,0,0,0.08)]">
@@ -9,7 +9,7 @@ export default function Table({ columns, data, onRowClick }) {
                 <th
                   key={col.key}
                   className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 md:px-4 py-3"
-                  style={col.width ? { width: col.width } : undefined}
+                  style={{ ...(col.width && { width: col.width }), ...(col.minWidth && { minWidth: col.minWidth }) }}
                 >
                   {col.label}
                 </th>
@@ -24,7 +24,7 @@ export default function Table({ columns, data, onRowClick }) {
                 onClick={() => onRowClick?.(row)}
               >
                 {columns.map((col) => (
-                  <td key={col.key} className="px-3 md:px-4 py-3 whitespace-nowrap">
+                  <td key={col.key} className={`px-3 md:px-4 py-3 ${col.nowrap === false ? '' : 'whitespace-nowrap'}`}>
                     {col.render ? col.render(row) : row[col.key]}
                   </td>
                 ))}
