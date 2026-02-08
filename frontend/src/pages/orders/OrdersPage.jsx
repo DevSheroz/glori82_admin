@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, ShoppingCart } from 'lucide-react'
+import { Plus, ShoppingCart, Pencil, Trash2, X } from 'lucide-react'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
 import Table from '../../components/Table'
@@ -25,6 +25,10 @@ export default function OrdersPage() {
   const [filterStatus, setFilterStatus] = useState('')
   const [filterCustomer, setFilterCustomer] = useState('')
 
+  // Sorting
+  const [sortBy, setSortBy] = useState('')
+  const [sortDir, setSortDir] = useState('asc')
+
   // Pagination
   const [page, setPage] = useState(1)
 
@@ -32,6 +36,9 @@ export default function OrdersPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editingOrder, setEditingOrder] = useState(null)
   const [saving, setSaving] = useState(false)
+
+  // Selection
+  const [selectedIds, setSelectedIds] = useState(new Set())
 
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -43,6 +50,10 @@ export default function OrdersPage() {
       const params = { page, page_size: PAGE_SIZE }
       if (filterStatus) params.status = filterStatus
       if (filterCustomer) params.customer_id = filterCustomer
+      if (sortBy) {
+        params.sort_by = sortBy
+        params.sort_dir = sortDir
+      }
 
       const [ordersRes, customersRes, productsRes, categoriesRes] = await Promise.all([
         ordersApi.getAll(params),
@@ -52,6 +63,7 @@ export default function OrdersPage() {
       ])
       setOrders(ordersRes.data.data)
       setTotal(ordersRes.data.total)
+      setSelectedIds(new Set())
       setCustomers(customersRes.data.data)
       setProducts(productsRes.data.data)
       setCategories(categoriesRes.data.data)
@@ -61,7 +73,7 @@ export default function OrdersPage() {
     } finally {
       setLoading(false)
     }
-  }, [filterStatus, filterCustomer, page])
+  }, [filterStatus, filterCustomer, sortBy, sortDir, page])
 
   useEffect(() => {
     fetchData()
@@ -72,9 +84,13 @@ export default function OrdersPage() {
     setPage(1)
   }, [filterStatus, filterCustomer])
 
-  const handleEdit = (order) => {
-    setEditingOrder(order)
-    setModalOpen(true)
+  const handleEditSelected = () => {
+    const orderId = [...selectedIds][0]
+    const order = orders.find((o) => o.order_id === orderId)
+    if (order) {
+      setEditingOrder(order)
+      setModalOpen(true)
+    }
   }
 
   const handleCreate = () => {
@@ -101,15 +117,15 @@ export default function OrdersPage() {
     }
   }
 
-  const handleDelete = async () => {
+  const handleBulkDelete = async () => {
     if (!deleteTarget) return
     try {
-      await ordersApi.delete(deleteTarget.order_id)
+      await Promise.all(deleteTarget.map((id) => ordersApi.delete(id)))
       setDeleteTarget(null)
       fetchData()
     } catch (err) {
       console.error('Delete failed:', err)
-      alert('Failed to delete order.')
+      alert('Failed to delete orders.')
     }
   }
 
@@ -122,10 +138,42 @@ export default function OrdersPage() {
     }
   }
 
+  const handleSort = (key) => {
+    if (sortBy === key) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(key)
+      setSortDir('asc')
+    }
+    setPage(1)
+  }
+
+  const toggleSelect = (orderId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(orderId)) next.delete(orderId)
+      else next.add(orderId)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (selectedIds.size === orders.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(orders.map((o) => o.order_id)))
+    }
+  }
+
   const columns = getColumns({
-    onEdit: handleEdit,
-    onDelete: (order) => setDeleteTarget(order),
     onStatusChange: handleStatusChange,
+    selectedIds,
+    onToggleSelect: toggleSelect,
+    onToggleAll: toggleAll,
+    allSelected: orders.length > 0 && selectedIds.size === orders.length,
+    sortBy,
+    sortDir,
+    onSort: handleSort,
   })
 
   const selectClass =
@@ -187,6 +235,39 @@ export default function OrdersPage() {
           )}
         </div>
       </Container>
+
+      {/* Bulk Actions */}
+      {selectedIds.size > 0 && (
+        <Container className="p-3!">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-(--color-text-base)">
+              {selectedIds.size} selected
+            </span>
+            <div className="flex items-center gap-2">
+              {selectedIds.size === 1 && (
+                <Button variant="secondary" size="sm" onClick={handleEditSelected}>
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
+                </Button>
+              )}
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setDeleteTarget([...selectedIds])}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete ({selectedIds.size})
+              </Button>
+            </div>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="ml-auto text-xs text-(--color-text-subtle) hover:text-(--color-text-base) cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </Container>
+      )}
 
       {/* Table */}
       <Container className="p-0!">
@@ -254,12 +335,14 @@ export default function OrdersPage() {
           />
           <div className="relative bg-white rounded-lg ring-1 ring-(--color-border-base) shadow-lg w-full max-w-sm mx-4 p-5">
             <h3 className="text-base font-semibold text-(--color-text-base) mb-2">
-              Delete Order
+              Delete {deleteTarget.length === 1 ? 'Order' : `${deleteTarget.length} Orders`}
             </h3>
             <p className="text-sm text-(--color-text-subtle) mb-5">
               Are you sure you want to delete{' '}
               <span className="font-medium text-(--color-text-base)">
-                {deleteTarget.order_number}
+                {deleteTarget.length === 1
+                  ? orders.find((o) => o.order_id === deleteTarget[0])?.order_number
+                  : `${deleteTarget.length} orders`}
               </span>
               ? This action cannot be undone.
             </p>
@@ -267,7 +350,7 @@ export default function OrdersPage() {
               <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
                 Cancel
               </Button>
-              <Button variant="danger" onClick={handleDelete}>
+              <Button variant="danger" onClick={handleBulkDelete}>
                 Delete
               </Button>
             </div>

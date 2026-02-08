@@ -1,108 +1,20 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { createPortal } from 'react-dom'
-import Badge from '../../components/Badge'
-import Button from '../../components/Button'
-import { Pencil, Trash2 } from 'lucide-react'
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 
-function getStatusBadge(status) {
-  switch (status) {
-    case 'pending':
-      return <Badge variant="warning">Pending</Badge>
-    case 'shipped':
-      return <Badge variant="neutral">Shipped</Badge>
-    case 'received':
-      return <Badge variant="info">Received</Badge>
-    case 'completed':
-      return <Badge variant="success">Completed</Badge>
-    default:
-      return <Badge variant="neutral">{status}</Badge>
-  }
-}
-
-function ItemsCell({ items }) {
-  const [open, setOpen] = useState(false)
-  const [pos, setPos] = useState({ top: 0, left: 0 })
-  const btnRef = useRef(null)
-
-  const updatePos = useCallback(() => {
-    if (!btnRef.current) return
-    const rect = btnRef.current.getBoundingClientRect()
-    const spaceBelow = window.innerHeight - rect.bottom
-    if (spaceBelow < 200) {
-      setPos({ top: rect.top + window.scrollY, left: rect.left + window.scrollX, openUp: true })
-    } else {
-      setPos({ top: rect.bottom + window.scrollY, left: rect.left + window.scrollX, openUp: false })
-    }
-  }, [])
-
-  useEffect(() => {
-    if (!open) return
-    function handleClick(e) {
-      if (btnRef.current && !btnRef.current.contains(e.target)) setOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
-
-  const handleToggle = (e) => {
-    e.stopPropagation()
-    if (!open) updatePos()
-    setOpen(!open)
-  }
-
-  if (!items || items.length === 0) {
-    return <span className="text-(--color-text-muted)">—</span>
-  }
-
-  const first = items[0].product_name
-  const rest = items.length > 1 ? ` +${items.length - 1}` : ''
-
+function SortHeader({ label, sortKey, sortBy, sortDir, onSort }) {
+  const active = sortBy === sortKey
   return (
-    <>
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={handleToggle}
-        className="text-(--color-text-subtle) hover:text-(--color-primary) underline decoration-dashed underline-offset-2 cursor-pointer text-left"
-      >
-        {items.length} — {first}{rest}
-      </button>
-
-      {open && createPortal(
-        <div
-          className="fixed z-50 bg-white rounded-lg ring-1 ring-(--color-border-base) shadow-lg p-3 w-64"
-          style={pos.openUp
-            ? { bottom: window.innerHeight - pos.top + 4, left: pos.left }
-            : { top: pos.top + 4, left: pos.left }
-          }
-        >
-          <p className="text-xs font-medium text-(--color-text-subtle) mb-2">
-            Order Items ({items.length})
-          </p>
-          <ul className="space-y-1.5">
-            {items.map((it, i) => (
-              <li
-                key={it.item_id ?? i}
-                className="flex items-start justify-between gap-2 text-sm"
-              >
-                <span className="text-(--color-text-base)">
-                  {it.product_name}
-                  {it.product_attributes && (
-                    <span className="text-(--color-text-muted) text-xs ml-1">
-                      ({it.product_attributes})
-                    </span>
-                  )}
-                </span>
-                <span className="text-(--color-text-muted) tabular-nums shrink-0">
-                  x{it.quantity}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>,
-        document.body
+    <button
+      type="button"
+      onClick={() => onSort(sortKey)}
+      className="inline-flex items-center gap-1 cursor-pointer hover:text-(--color-text-base) transition-colors"
+    >
+      {label}
+      {active ? (
+        sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
+      ) : (
+        <ArrowUpDown className="w-3 h-3 opacity-40" />
       )}
-    </>
+    </button>
   )
 }
 
@@ -120,8 +32,43 @@ const statusColors = {
   completed: 'text-green-600 bg-green-50 ring-green-200',
 }
 
-export function getColumns({ onEdit, onDelete, onStatusChange }) {
+const checkboxClass = 'rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer'
+
+function uniqueList(items, key) {
+  const values = [...new Set(items.map((it) => it[key]).filter(Boolean))]
+  if (values.length === 0) return '—'
+  return values.map((v, i) => (
+    <span key={i}>
+      {v}
+      {i < values.length - 1 && <br />}
+    </span>
+  ))
+}
+
+export function getColumns({ onStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected, sortBy, sortDir, onSort }) {
   return [
+    {
+      key: 'select',
+      label: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={onToggleAll}
+          className={checkboxClass}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      width: '40px',
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(row.order_id)}
+          onChange={() => onToggleSelect(row.order_id)}
+          onClick={(e) => e.stopPropagation()}
+          className={checkboxClass}
+        />
+      ),
+    },
     {
       key: 'order_number',
       label: 'Order #',
@@ -133,7 +80,8 @@ export function getColumns({ onEdit, onDelete, onStatusChange }) {
     },
     {
       key: 'customer_name',
-      label: 'Customer',
+      label: <SortHeader label="Name" sortKey="customer_name" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
+      minWidth: '120px',
       render: (row) => (
         <span className="text-(--color-text-subtle)">
           {row.customer_name || 'TBA'}
@@ -141,9 +89,68 @@ export function getColumns({ onEdit, onDelete, onStatusChange }) {
       ),
     },
     {
+      key: 'category',
+      label: 'Category',
+      minWidth: '120px',
+      nowrap: false,
+      render: (row) => (
+        <span className="text-(--color-text-subtle)">
+          {uniqueList(row.items || [], 'category_name')}
+        </span>
+      ),
+    },
+    {
+      key: 'brand',
+      label: 'Brand',
+      minWidth: '110px',
+      nowrap: false,
+      render: (row) => (
+        <span className="text-(--color-text-subtle)">
+          {uniqueList(row.items || [], 'brand')}
+        </span>
+      ),
+    },
+    {
       key: 'items',
-      label: 'Items',
-      render: (row) => <ItemsCell items={row.items} />,
+      label: 'Products',
+      minWidth: '200px',
+      nowrap: false,
+      render: (row) => {
+        if (!row.items || row.items.length === 0) {
+          return <span className="text-(--color-text-muted)">—</span>
+        }
+        return (
+          <ul className="space-y-1">
+            {row.items.map((it, i) => (
+              <li key={it.item_id ?? i} className="flex items-start justify-between gap-2 text-sm">
+                <span className="text-(--color-text-base)">
+                  {it.product_name}
+                  {it.product_attributes && (
+                    <span className="text-(--color-text-muted) text-xs ml-1">
+                      ({it.product_attributes})
+                    </span>
+                  )}
+                </span>
+                <span className="text-(--color-text-muted) tabular-nums shrink-0">
+                  x{it.quantity}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )
+      },
+    },
+    {
+      key: 'total_price_uzs',
+      label: 'Total Price (UZS)',
+      minWidth: '140px',
+      render: (row) => (
+        <span className="tabular-nums font-medium">
+          {row.total_price_uzs != null
+            ? Number(row.total_price_uzs).toLocaleString()
+            : '—'}
+        </span>
+      ),
     },
     {
       key: 'total_cost',
@@ -157,22 +164,12 @@ export function getColumns({ onEdit, onDelete, onStatusChange }) {
       ),
     },
     {
-      key: 'total_amount',
-      label: 'Total (USD)',
+      key: 'total_selling_usd',
+      label: 'Selling (USD)',
+      minWidth: '110px',
       render: (row) => (
         <span className="tabular-nums">
-          {row.total_amount != null ? `$${Number(row.total_amount).toFixed(2)}` : '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'total_amount_uzs',
-      label: 'Total (UZS)',
-      render: (row) => (
-        <span className="tabular-nums">
-          {row.total_amount_uzs != null
-            ? Number(row.total_amount_uzs).toLocaleString()
-            : '—'}
+          {row.total_selling_usd != null ? `$${Number(row.total_selling_usd).toFixed(2)}` : '—'}
         </span>
       ),
     },
@@ -188,45 +185,28 @@ export function getColumns({ onEdit, onDelete, onStatusChange }) {
       ),
     },
     {
-      key: 'shipping_fee_uzs',
-      label: 'Shipping (UZS)',
+      key: 'shipping_fee_usd',
+      label: 'Cargo ($12/kg)',
+      minWidth: '110px',
       render: (row) => (
         <span className="tabular-nums">
-          {row.shipping_fee_uzs != null
-            ? Number(row.shipping_fee_uzs).toLocaleString()
-            : '—'}
+          {row.shipping_fee_usd != null ? `$${Number(row.shipping_fee_usd).toFixed(2)}` : '—'}
         </span>
       ),
     },
     {
-      key: 'grand_total_uzs',
-      label: 'Grand Total (UZS)',
+      key: 'customer_cargo_usd',
+      label: 'Cust. Cargo ($13/kg)',
+      minWidth: '130px',
       render: (row) => (
-        <span className="tabular-nums font-medium">
-          {row.grand_total_uzs != null
-            ? Number(row.grand_total_uzs).toLocaleString()
-            : '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'order_date',
-      label: 'Date',
-      render: (row) => (
-        <span className="text-(--color-text-subtle) tabular-nums">
-          {row.order_date
-            ? new Date(row.order_date).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })
-            : '—'}
+        <span className="tabular-nums">
+          {row.customer_cargo_usd != null ? `$${Number(row.customer_cargo_usd).toFixed(2)}` : '—'}
         </span>
       ),
     },
     {
       key: 'status',
-      label: 'Status',
+      label: <SortHeader label="Status" sortKey="status" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       render: (row) => (
         <select
           value={row.status}
@@ -237,7 +217,7 @@ export function getColumns({ onEdit, onDelete, onStatusChange }) {
             }
           }}
           onClick={(e) => e.stopPropagation()}
-          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-[length:12px] bg-[right_6px_center] bg-no-repeat ${statusColors[row.status] || ''}`}
+          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${statusColors[row.status] || ''}`}
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")` }}
         >
           {statusOptions.map((opt) => (
@@ -247,18 +227,28 @@ export function getColumns({ onEdit, onDelete, onStatusChange }) {
       ),
     },
     {
-      key: 'actions',
-      label: '',
-      width: '100px',
+      key: 'shipping_number',
+      label: <SortHeader label="Shipping #" sortKey="shipping_number" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       render: (row) => (
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          <Button variant="ghost" size="sm" onClick={() => onEdit(row)}>
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => onDelete(row)}>
-            <Trash2 className="w-3.5 h-3.5 text-(--color-danger)" />
-          </Button>
-        </div>
+        <span className="text-(--color-text-subtle)">
+          {row.shipping_number || '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'order_date',
+      label: 'Created',
+      minWidth: '110px',
+      render: (row) => (
+        <span className="text-(--color-text-subtle) tabular-nums">
+          {row.order_date
+            ? new Date(row.order_date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })
+            : '—'}
+        </span>
       ),
     },
   ]
