@@ -1,6 +1,7 @@
 import Badge from '../../components/Badge'
-import Button from '../../components/Button'
-import { Pencil, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+
+const checkboxClass = 'rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer'
 
 function SortHeader({ label, sortKey, sortBy, sortDir, onSort }) {
   const active = sortBy === sortKey
@@ -21,17 +22,40 @@ function SortHeader({ label, sortKey, sortBy, sortDir, onSort }) {
 }
 
 function getStockBadge(row) {
-  if (row.stock_quantity === 0) {
-    return <Badge variant="danger">Out of Stock</Badge>
+  switch (row.stock_status) {
+    case 'out_of_stock':
+      return <Badge variant="danger">Out of Stock</Badge>
+    case 'pre_order':
+      return <Badge variant="warning">Pre-order</Badge>
+    default:
+      return <Badge variant="success">In Stock</Badge>
   }
-  if (row.stock_quantity <= row.reorder_level) {
-    return <Badge variant="warning">Low Stock</Badge>
-  }
-  return <Badge variant="success">In Stock</Badge>
 }
 
-export function getColumns({ categories, onEdit, onDelete, sortBy, sortDir, onSort }) {
+export function getColumns({ categories, sortBy, sortDir, onSort, selectedIds, onToggleSelect, onToggleAll, allSelected }) {
   return [
+    {
+      key: 'select',
+      label: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={onToggleAll}
+          className={checkboxClass}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      width: '40px',
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(row.product_id)}
+          onChange={() => onToggleSelect(row.product_id)}
+          onClick={(e) => e.stopPropagation()}
+          className={checkboxClass}
+        />
+      ),
+    },
     {
       key: 'product_name',
       label: 'Name',
@@ -83,13 +107,13 @@ export function getColumns({ categories, onEdit, onDelete, sortBy, sortDir, onSo
       label: 'Cost (KRW)',
       render: (row) => (
         <span className="tabular-nums">
-          {Number(row.cost_price).toLocaleString()}
+          {row.cost_price != null ? Number(row.cost_price).toLocaleString() : '—'}
         </span>
       ),
     },
     {
       key: 'selling_price',
-      label: 'Price (USD)',
+      label: 'Selling (USD)',
       render: (row) => (
         <span className="tabular-nums">
           {row.selling_price != null ? `$${Number(row.selling_price).toFixed(2)}` : '—'}
@@ -108,12 +132,45 @@ export function getColumns({ categories, onEdit, onDelete, sortBy, sortDir, onSo
       ),
     },
     {
-      key: 'packaged_weight_grams',
-      label: <SortHeader label="Weight (g)" sortKey="packaged_weight_grams" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
+      key: 'weight_kg',
+      label: <SortHeader label="Weight (kg)" sortKey="packaged_weight_grams" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       render: (row) => (
-        <span className="tabular-nums text-(--color-text-subtle)">
-          {row.packaged_weight_grams ?? '—'}
+        <span className="tabular-nums">
+          {row.packaged_weight_grams != null
+            ? (row.packaged_weight_grams / 1000).toFixed(2)
+            : '—'}
         </span>
+      ),
+    },
+    {
+      key: 'cargo',
+      label: 'Cargo ($12/kg)',
+      minWidth: '110px',
+      render: (row) => (
+        <span className="tabular-nums">
+          {row.packaged_weight_grams != null
+            ? `$${((row.packaged_weight_grams / 1000) * 12).toFixed(2)}`
+            : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'customer_cargo',
+      label: 'Cust. Cargo ($13/kg)',
+      minWidth: '130px',
+      render: (row) => (
+        <span className="tabular-nums">
+          {row.packaged_weight_grams != null
+            ? `$${((row.packaged_weight_grams / 1000) * 13).toFixed(2)}`
+            : '—'}
+        </span>
+      ),
+    },
+    {
+      key: 'times_ordered',
+      label: 'Ordered',
+      render: (row) => (
+        <span className="tabular-nums">{row.times_ordered ?? 0}</span>
       ),
     },
     {
@@ -125,31 +182,8 @@ export function getColumns({ categories, onEdit, onDelete, sortBy, sortDir, onSo
     },
     {
       key: 'status',
-      label: <SortHeader label="Status" sortKey="stock_quantity" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
+      label: <SortHeader label="Status" sortKey="stock_status" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       render: (row) => getStockBadge(row),
-    },
-    {
-      key: 'actions',
-      label: '',
-      width: '100px',
-      render: (row) => (
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onEdit(row)}
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onDelete(row)}
-          >
-            <Trash2 className="w-3.5 h-3.5 text-(--color-danger)" />
-          </Button>
-        </div>
-      ),
     },
   ]
 }
