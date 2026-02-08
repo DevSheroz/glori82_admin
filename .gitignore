@@ -27,6 +27,7 @@ dist/
 
 # docs
 test.md
+CLAUDE.md
 
 # OS
 .DS_Store
