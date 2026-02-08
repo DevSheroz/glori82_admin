@@ -43,6 +43,10 @@ export const ordersApi = {
   delete: (id) => api.delete(`/orders/${id}`),
 }
 
+export const currencyApi = {
+  getRates: (params) => api.get('/currency/rates', { params }),
+}
+
 export const shipmentsApi = {
   getAll: (params) => api.get('/shipments', { params }),
   getById: (id) => api.get(`/shipments/${id}`),

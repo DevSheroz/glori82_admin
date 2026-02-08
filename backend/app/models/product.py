@@ -21,6 +21,7 @@ class Product(Base):
     volume_ml: Mapped[int | None] = mapped_column(Integer)
     stock_quantity: Mapped[int] = mapped_column(Integer, server_default="0")
     reorder_level: Mapped[int] = mapped_column(Integer, server_default="0")
+    stock_status: Mapped[str] = mapped_column(String(20), server_default="in_stock")
     is_active: Mapped[bool] = mapped_column(Boolean, server_default="true")
 
     category: Mapped["ProductCategory | None"] = relationship(back_populates="products")

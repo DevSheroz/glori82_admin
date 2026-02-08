@@ -35,6 +35,8 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
             "product_name": item.product.product_name if item.product else None,
             "product_attributes": _format_product_attributes(item.product),
             "packaged_weight_grams": item.product.packaged_weight_grams if item.product else None,
+            "brand": item.product.brand if item.product else None,
+            "category_name": item.product.category.category_name if item.product and item.product.category else None,
         }
         for item in order.items
     ]
@@ -46,7 +48,15 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
         (it["selling_price_uzs"] or 0) * it["quantity"]
         for it in items
     ) or None
-    service_fee = order.service_fee if order.service_fee is not None else 3.00
+    service_fee = order.service_fee if order.service_fee is not None else Decimal("3.00")
+
+    selling_sum = sum(
+        (it["selling_price"] or 0) * it["quantity"]
+        for it in items
+    )
+    total_selling_usd = (Decimal(str(selling_sum)) + Decimal(str(service_fee))).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    ) if selling_sum else None
 
     total_weight_grams = sum(
         (it["packaged_weight_grams"] or 0) * it["quantity"]
@@ -58,9 +68,23 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
     shipping_fee_usd = (total_weight_kg * Decimal(12)).quantize(
         Decimal("0.01"), rounding=ROUND_HALF_UP
     ) if total_weight_kg else None
+    customer_cargo_usd = (total_weight_kg * Decimal(13)).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    ) if total_weight_kg else None
     shipping_fee_uzs = (shipping_fee_usd * usd_to_uzs).quantize(
         Decimal("0.01"), rounding=ROUND_HALF_UP
     ) if shipping_fee_usd and usd_to_uzs else None
+
+    total_price_usd = None
+    total_price_uzs = None
+    if total_selling_usd and customer_cargo_usd:
+        total_price_usd = (total_selling_usd + customer_cargo_usd).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        if usd_to_uzs:
+            total_price_uzs = (total_price_usd * usd_to_uzs).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
 
     return {
         "order_id": order.order_id,
@@ -69,14 +93,19 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
         "order_date": order.order_date,
         "total_amount": order.total_amount,
         "total_cost": total_cost,
+        "total_selling_usd": total_selling_usd,
         "total_amount_uzs": total_amount_uzs,
         "total_weight_kg": total_weight_kg,
         "shipping_fee_usd": shipping_fee_usd,
+        "customer_cargo_usd": customer_cargo_usd,
         "shipping_fee_uzs": shipping_fee_uzs,
         "grand_total_uzs": (total_amount_uzs or 0) + (shipping_fee_uzs or 0) or None,
+        "total_price_usd": total_price_usd,
+        "total_price_uzs": total_price_uzs,
         "status": order.status,
         "notes": order.notes,
         "service_fee": service_fee,
+        "shipping_number": order.shipping_number,
         "customer_name": order.customer.customer_name if order.customer else None,
         "items": items,
     }
@@ -96,6 +125,8 @@ async def list_orders(
     customer_id: int | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
+    sort_by: str | None = None,
+    sort_dir: str = "asc",
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -106,6 +137,8 @@ async def list_orders(
         customer_id=customer_id,
         date_from=date_from,
         date_to=date_to,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
         page=page,
         page_size=page_size,
     )

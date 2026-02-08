@@ -18,6 +18,7 @@ class Order(Base):
     status: Mapped[str] = mapped_column(String(20), server_default="pending")
     notes: Mapped[str | None] = mapped_column(Text)
     service_fee: Mapped[Decimal] = mapped_column(Numeric(12, 2), server_default="3.00")
+    shipping_number: Mapped[str | None] = mapped_column(String(100))
 
     customer: Mapped["Customer | None"] = relationship(back_populates="orders")
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")
