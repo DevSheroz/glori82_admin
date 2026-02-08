@@ -1,20 +1,84 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Plus, X } from 'lucide-react'
 import Modal from '../../components/Modal'
 import Button from '../../components/Button'
-import SearchSelect from '../../components/SearchSelect'
-import { productsApi } from '../../lib/api'
+import { productsApi, currencyApi } from '../../lib/api'
 
-const blankItem = { category_id: '', brand: '', product_id: '', quantity: 1, selling_price: '', selling_price_uzs: '', cost_price: '' }
+/* ── Reusable autocomplete input ── */
+function AutocompleteInput({ value, onChange, onSelect, options, placeholder, className }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const filtered = useMemo(() => {
+    const q = (value || '').trim().toLowerCase()
+    if (!q) return []
+    return options.filter((o) => o.label.toLowerCase().includes(q))
+  }, [value, options])
+
+  return (
+    <div ref={ref} className="relative">
+      <input
+        value={value || ''}
+        onChange={(e) => { onChange(e.target.value); setOpen(true) }}
+        onFocus={() => value && setOpen(true)}
+        placeholder={placeholder}
+        className={className}
+        autoComplete="off"
+      />
+      {open && filtered.length > 0 && (
+        <ul className="absolute z-50 mt-1 w-full bg-white rounded-md ring-1 ring-(--color-border-base) shadow-lg max-h-36 overflow-y-auto py-1">
+          {filtered.map((o, i) => (
+            <li
+              key={o.value ?? i}
+              onClick={() => { onSelect(o); setOpen(false) }}
+              className="px-3 py-1.5 text-sm cursor-pointer hover:bg-(--color-bg-subtle) text-(--color-text-base) truncate"
+            >
+              {o.label}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+/* ── Constants ── */
+const blankItem = {
+  category_id: '',
+  category_name: '',
+  brand: '',
+  product_id: '',
+  product_name: '',
+  quantity: 1,
+  cost_price: '',
+  selling_price: '',
+  selling_price_uzs: '',
+  weight_kg: '',
+  cargo: '',
+  customer_cargo: '',
+}
 
 const initialForm = {
   customer_id: '',
+  customer_name: '',
+  city: '',
+  address: '',
+  phone: '',
   status: 'pending',
   notes: '',
+  service_fee: '3.00',
   items: [{ ...blankItem }],
-  cost_override: '',
 }
 
+/* ── Main component ── */
 export default function OrderModal({
   open,
   onClose,
@@ -27,12 +91,44 @@ export default function OrderModal({
 }) {
   const [form, setForm] = useState(initialForm)
   const [rowOptions, setRowOptions] = useState({})
+  const [krwToUsd, setKrwToUsd] = useState(0)
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false)
+  const customerRef = useRef(null)
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (customerRef.current && !customerRef.current.contains(e.target)) {
+        setShowCustomerSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  const filteredCustomers = useMemo(() => {
+    const q = (form.customer_name || '').trim().toLowerCase()
+    if (!q) return []
+    return customers.filter((c) => c.customer_name.toLowerCase().includes(q))
+  }, [form.customer_name, customers])
 
   const productMap = useMemo(() => {
     const map = {}
     for (const p of products) map[p.product_id] = p
     return map
   }, [products])
+
+  const customerMap = useMemo(() => {
+    const map = {}
+    for (const c of customers) map[c.customer_id] = c
+    return map
+  }, [customers])
+
+  useEffect(() => {
+    if (!open) return
+    currencyApi.getRates().then((res) => {
+      setKrwToUsd(res.data.krw_to_usd || 0)
+    }).catch(() => {})
+  }, [open])
 
   const fetchBrands = useCallback(async (categoryId) => {
     try {
@@ -55,6 +151,7 @@ export default function OrderModal({
     }
   }, [])
 
+  // Populate form on open
   useEffect(() => {
     if (!open) return
 
@@ -63,27 +160,40 @@ export default function OrderModal({
         order.items && order.items.length > 0
           ? order.items.map((it) => {
               const product = productMap[it.product_id]
+              const weightGrams = it.packaged_weight_grams || product?.packaged_weight_grams || 0
+              const weightKg = weightGrams ? weightGrams / 1000 : 0
+              const qty = it.quantity ?? 1
               return {
                 category_id: product?.category_id ?? '',
+                category_name: it.category_name || product?.category?.category_name || '',
                 brand: product?.brand ?? '',
                 product_id: it.product_id ?? '',
-                quantity: it.quantity ?? 1,
+                product_name: it.product_name || product?.product_name || '',
+                quantity: qty,
+                cost_price: it.cost_price ?? '',
                 selling_price: it.selling_price ?? '',
                 selling_price_uzs: it.selling_price_uzs ?? '',
-                cost_price: it.cost_price ?? '',
+                weight_kg: weightKg ? weightKg.toFixed(2) : '',
+                cargo: weightKg ? (weightKg * qty * 12).toFixed(2) : '',
+                customer_cargo: weightKg ? (weightKg * qty * 13).toFixed(2) : '',
               }
             })
           : [{ ...blankItem }]
 
+      const customer = order.customer_id ? customerMap[order.customer_id] : null
+
       setForm({
         customer_id: order.customer_id ?? '',
+        customer_name: customer?.customer_name ?? order.customer_name ?? '',
+        city: customer?.city ?? '',
+        address: customer?.address ?? '',
+        phone: customer?.contact_phone ?? '',
         status: order.status ?? 'pending',
         notes: order.notes ?? '',
+        service_fee: order.service_fee ?? '3.00',
         items,
-        cost_override: '',
       })
 
-      // Pre-populate row options for edit mode
       const loadRowOptions = async () => {
         const opts = {}
         for (let i = 0; i < items.length; i++) {
@@ -100,65 +210,125 @@ export default function OrderModal({
       }
       loadRowOptions()
     } else {
-      setForm(initialForm)
+      setForm({ ...initialForm, items: [{ ...blankItem }] })
       setRowOptions({})
     }
-  }, [order, open, productMap, fetchBrands, fetchProducts])
+  }, [order, open, productMap, customerMap, fetchBrands, fetchProducts])
+
+  /* ── Customer handlers ── */
+  const handleCustomerNameChange = (e) => {
+    setForm((prev) => ({ ...prev, customer_name: e.target.value, customer_id: '' }))
+    setShowCustomerSuggestions(true)
+  }
+
+  const handleCustomerPick = (customer) => {
+    setForm((prev) => ({
+      ...prev,
+      customer_id: customer.customer_id,
+      customer_name: customer.customer_name,
+      city: customer.city || '',
+      address: customer.address || '',
+      phone: customer.contact_phone || '',
+    }))
+    setShowCustomerSuggestions(false)
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleCategoryChange = async (index, categoryId) => {
+  /* ── Item: Category handlers ── */
+  const handleCategoryType = (index, text) => {
     setForm((prev) => {
       const items = prev.items.map((it, i) =>
-        i === index ? { ...it, category_id: categoryId, brand: '', product_id: '', selling_price: '', selling_price_uzs: '', cost_price: '' } : it
+        i === index
+          ? { ...blankItem, category_name: text, quantity: it.quantity }
+          : it
       )
       return { ...prev, items }
     })
-
-    if (categoryId) {
-      const brands = await fetchBrands(categoryId)
-      setRowOptions((prev) => ({ ...prev, [index]: { brands, products: [] } }))
-    } else {
-      setRowOptions((prev) => ({ ...prev, [index]: { brands: [], products: [] } }))
-    }
+    setRowOptions((prev) => ({ ...prev, [index]: { brands: [], products: [] } }))
   }
 
-  const handleBrandChange = async (index, brand, categoryId) => {
+  const handleCategoryPick = async (index, option) => {
     setForm((prev) => {
       const items = prev.items.map((it, i) =>
-        i === index ? { ...it, brand, product_id: '', selling_price: '', selling_price_uzs: '', cost_price: '' } : it
+        i === index
+          ? { ...blankItem, category_id: option.value, category_name: option.label, quantity: it.quantity }
+          : it
       )
       return { ...prev, items }
     })
+    const brands = await fetchBrands(option.value)
+    setRowOptions((prev) => ({ ...prev, [index]: { brands, products: [] } }))
+  }
 
-    if (brand) {
-      const prods = await fetchProducts(categoryId, brand)
+  /* ── Item: Brand handlers ── */
+  const handleBrandType = (index, text) => {
+    setForm((prev) => {
+      const items = prev.items.map((it, i) =>
+        i === index
+          ? { ...it, brand: text, product_id: '', product_name: '', selling_price: '', selling_price_uzs: '', cost_price: '', weight_kg: '' }
+          : it
+      )
+      return { ...prev, items }
+    })
+    setRowOptions((prev) => ({
+      ...prev,
+      [index]: { ...prev[index], products: [] },
+    }))
+  }
+
+  const handleBrandPick = async (index, option, categoryId) => {
+    setForm((prev) => {
+      const items = prev.items.map((it, i) =>
+        i === index
+          ? { ...it, brand: option.label, product_id: '', product_name: '', selling_price: '', selling_price_uzs: '', cost_price: '', weight_kg: '' }
+          : it
+      )
+      return { ...prev, items }
+    })
+    if (categoryId) {
+      const prods = await fetchProducts(categoryId, option.label)
       setRowOptions((prev) => ({
         ...prev,
         [index]: { ...prev[index], products: prods },
       }))
-    } else {
-      setRowOptions((prev) => ({
-        ...prev,
-        [index]: { ...prev[index], products: [] },
-      }))
     }
   }
 
-  const handleProductChange = (index, productId) => {
+  /* ── Item: Product handlers ── */
+  const handleProductType = (index, text) => {
+    setForm((prev) => {
+      const items = prev.items.map((it, i) =>
+        i === index
+          ? { ...it, product_id: '', product_name: text }
+          : it
+      )
+      return { ...prev, items }
+    })
+  }
+
+  const handleProductPick = (index, option) => {
+    const product =
+      productMap[option.value] ||
+      (rowOptions[index]?.products || []).find((p) => p.product_id === Number(option.value))
+
     setForm((prev) => {
       const items = prev.items.map((it, i) => {
         if (i !== index) return it
-        const updated = { ...it, product_id: productId }
-        if (productId) {
-          const product = productMap[productId] || (rowOptions[index]?.products || []).find((p) => p.product_id === Number(productId))
-          if (product) {
-            updated.selling_price = product.selling_price ?? ''
-            updated.selling_price_uzs = product.selling_price_uzs ?? ''
-            updated.cost_price = product.cost_price ?? ''
+        const updated = { ...it, product_id: option.value, product_name: option.label }
+        if (product) {
+          updated.cost_price = product.cost_price ?? ''
+          updated.selling_price = product.selling_price ?? ''
+          updated.selling_price_uzs = product.selling_price_uzs ?? ''
+          if (product.packaged_weight_grams) {
+            const wt = product.packaged_weight_grams / 1000
+            const qty = Number(it.quantity) || 1
+            updated.weight_kg = wt.toFixed(2)
+            updated.cargo = (wt * qty * 12).toFixed(2)
+            updated.customer_cargo = (wt * qty * 13).toFixed(2)
           }
         }
         return updated
@@ -167,20 +337,35 @@ export default function OrderModal({
     })
   }
 
-  const handleQuantityChange = (index, value) => {
+  /* ── Item: numeric field handlers ── */
+  const handleCostChange = (index, costKrw) => {
     setForm((prev) => {
-      const items = prev.items.map((it, i) =>
-        i === index ? { ...it, quantity: value } : it
-      )
+      const items = prev.items.map((it, i) => {
+        if (i !== index) return it
+        const updated = { ...it, cost_price: costKrw }
+        if (costKrw && krwToUsd > 0) {
+          updated.selling_price = (Number(costKrw) * krwToUsd * 1.5).toFixed(2)
+        }
+        return updated
+      })
       return { ...prev, items }
     })
   }
 
-  const handlePriceChange = (index, field, value) => {
+  const handleItemField = (index, field, value) => {
     setForm((prev) => {
-      const items = prev.items.map((it, i) =>
-        i === index ? { ...it, [field]: value } : it
-      )
+      const items = prev.items.map((it, i) => {
+        if (i !== index) return it
+        const updated = { ...it, [field]: value }
+        // Auto-fill cargo when weight or quantity changes
+        if (field === 'weight_kg' || field === 'quantity') {
+          const wt = Number(field === 'weight_kg' ? value : it.weight_kg) || 0
+          const qty = Number(field === 'quantity' ? value : it.quantity) || 0
+          updated.cargo = (wt * qty * 12).toFixed(2)
+          updated.customer_cargo = (wt * qty * 13).toFixed(2)
+        }
+        return updated
+      })
       return { ...prev, items }
     })
   }
@@ -205,41 +390,55 @@ export default function OrderModal({
     })
   }
 
-  const computedTotal = useMemo(() => {
-    let sum = 0
-    for (const it of form.items) {
-      const price = Number(it.selling_price) || 0
-      const qty = Number(it.quantity) || 0
-      sum += price * qty
-    }
-    return sum
-  }, [form.items])
+  /* ── Computed totals ── */
+  const totals = useMemo(() => {
+    let totalSelling = 0
+    let totalWeight = 0
+    let totalCargo = 0
+    let totalCustomerCargo = 0
 
-  const computedTotalUzs = useMemo(() => {
-    let sum = 0
     for (const it of form.items) {
-      const price = Number(it.selling_price_uzs) || 0
       const qty = Number(it.quantity) || 0
-      sum += price * qty
+      const sell = Number(it.selling_price) || 0
+      const wt = Number(it.weight_kg) || 0
+      totalSelling += sell * qty
+      totalWeight += wt * qty
+      totalCargo += Number(it.cargo) || 0
+      totalCustomerCargo += Number(it.customer_cargo) || 0
     }
-    return sum
-  }, [form.items])
 
+    const serviceFee = Number(form.service_fee) || 3
+    const totalPrice = totalSelling + totalCustomerCargo + serviceFee
+
+    return { totalSelling, totalWeight, totalCargo, totalCustomerCargo, totalPrice }
+  }, [form.items, form.service_fee])
+
+  /* ── Submit ── */
   const handleSubmit = (e) => {
     e.preventDefault()
     const payload = {
       customer_id: form.customer_id ? Number(form.customer_id) : null,
+      customer_name: form.customer_name || null,
+      customer_city: form.city || null,
+      customer_address: form.address || null,
+      customer_phone: form.phone || null,
       status: form.status,
-      total_amount: computedTotal || null,
+      total_amount: totals.totalSelling || null,
       notes: form.notes || null,
+      service_fee: Number(form.service_fee) || 3,
       items: form.items
-        .filter((it) => it.product_id)
+        .filter((it) => it.product_id || it.product_name)
         .map((it) => ({
-          product_id: Number(it.product_id),
+          product_id: it.product_id ? Number(it.product_id) : null,
+          product_name: it.product_name || null,
+          brand: it.brand || null,
+          category_id: it.category_id ? Number(it.category_id) : null,
+          category_name: it.category_name || null,
           quantity: Number(it.quantity) || 1,
           selling_price: it.selling_price ? Number(it.selling_price) : null,
           selling_price_uzs: it.selling_price_uzs ? Number(it.selling_price_uzs) : null,
           cost_price: it.cost_price ? Number(it.cost_price) : null,
+          packaged_weight_grams: it.weight_kg ? Math.round(Number(it.weight_kg) * 1000) : null,
         })),
     }
     if (order) {
@@ -255,6 +454,8 @@ export default function OrderModal({
 
   const labelClass = 'block text-xs font-medium text-(--color-text-subtle) mb-1.5'
 
+  const tinyLabel = 'block text-[10px] text-(--color-text-muted) mb-0.5'
+
   return (
     <Modal
       open={open}
@@ -266,64 +467,90 @@ export default function OrderModal({
           <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button
-            variant="primary"
-            onClick={handleSubmit}
-            disabled={saving}
-          >
+          <Button variant="primary" onClick={handleSubmit} disabled={saving}>
             {saving ? 'Saving...' : isEdit ? 'Update' : 'Create'}
           </Button>
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-          <div>
-            <label className={labelClass}>Customer</label>
-            <SearchSelect
-              value={form.customer_id}
-              onChange={(val) =>
-                setForm((prev) => ({ ...prev, customer_id: val }))
-              }
-              placeholder="None"
-              options={customers.map((c) => ({
-                value: c.customer_id,
-                label: c.customer_name,
-              }))}
-            />
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {/* Customer Section */}
+        <div>
+          <h3 className="text-xs font-semibold text-(--color-text-base) uppercase tracking-wider mb-3">
+            Customer
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div ref={customerRef} className="relative">
+              <label className={labelClass}>Name</label>
+              <input
+                value={form.customer_name}
+                onChange={handleCustomerNameChange}
+                onFocus={() => form.customer_name && setShowCustomerSuggestions(true)}
+                className={inputClass}
+                placeholder="Type customer name..."
+                autoComplete="off"
+              />
+              {showCustomerSuggestions && filteredCustomers.length > 0 && (
+                <ul className="absolute z-50 mt-1 w-full bg-white rounded-md ring-1 ring-(--color-border-base) shadow-lg max-h-48 overflow-y-auto py-1">
+                  {filteredCustomers.map((c) => (
+                    <li
+                      key={c.customer_id}
+                      onClick={() => handleCustomerPick(c)}
+                      className="px-3 py-1.5 text-sm cursor-pointer hover:bg-(--color-bg-subtle) text-(--color-text-base)"
+                    >
+                      {c.customer_name}
+                      {c.city && (
+                        <span className="text-xs text-(--color-text-muted) ml-1">
+                          ({c.city})
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <div>
+              <label className={labelClass}>City</label>
+              <input name="city" value={form.city} onChange={handleChange} className={inputClass} placeholder="City" />
+            </div>
+            <div>
+              <label className={labelClass}>Address</label>
+              <input name="address" value={form.address} onChange={handleChange} className={inputClass} placeholder="Address" />
+            </div>
+            <div>
+              <label className={labelClass}>Phone</label>
+              <input name="phone" value={form.phone} onChange={handleChange} className={inputClass} placeholder="Phone" />
+            </div>
           </div>
+        </div>
+
+        {/* Order Info */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>Status</label>
-            <select
-              name="status"
-              value={form.status}
-              onChange={handleChange}
-              className={inputClass}
-            >
+            <select name="status" value={form.status} onChange={handleChange} className={inputClass}>
               <option value="pending">Pending</option>
               <option value="shipped">Shipped</option>
               <option value="received">Received</option>
               <option value="completed">Completed</option>
             </select>
           </div>
+          <div>
+            <label className={labelClass}>Service Fee ($)</label>
+            <input name="service_fee" type="number" step="0.01" value={form.service_fee} onChange={handleChange} className={inputClass} />
+          </div>
         </div>
 
+        {/* Notes */}
         <div>
           <label className={labelClass}>Notes</label>
-          <textarea
-            name="notes"
-            value={form.notes}
-            onChange={handleChange}
-            rows={2}
-            className={inputClass}
-            placeholder="Optional notes"
-          />
+          <textarea name="notes" value={form.notes} onChange={handleChange} rows={2} className={inputClass} placeholder="Optional notes" />
         </div>
 
-        {/* Items section */}
+        {/* Items Section */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className={labelClass + ' mb-0!'}>Order Items</label>
+            <h3 className="text-xs font-semibold text-(--color-text-base) uppercase tracking-wider">Items</h3>
             <button
               type="button"
               onClick={addItem}
@@ -337,208 +564,136 @@ export default function OrderModal({
           <div className="space-y-3">
             {form.items.map((item, index) => {
               const opts = rowOptions[index] || { brands: [], products: [] }
+
               return (
                 <div
                   key={index}
-                  className="relative p-3 sm:p-0 rounded-md sm:rounded-none bg-(--color-bg-subtle) sm:bg-transparent"
+                  className="relative p-3 rounded-md bg-(--color-bg-subtle) ring-1 ring-(--color-border-base)"
                 >
-                  {/* Mobile: Card layout */}
-                  <div className="sm:hidden space-y-2">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-medium text-(--color-text-subtle)">Item {index + 1}</span>
-                      <button
-                        type="button"
-                        onClick={() => removeItem(index)}
-                        className="p-1 rounded-md text-(--color-text-muted) hover:text-(--color-danger) hover:bg-red-50 transition-colors cursor-pointer"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <span className="text-[10px] text-(--color-text-muted)">Category</span>
-                        <select
-                          value={item.category_id}
-                          onChange={(e) => handleCategoryChange(index, e.target.value)}
-                          className={inputClass + ' py-1.5 text-xs'}
-                        >
-                          <option value="">Category...</option>
-                          {categories.map((c) => (
-                            <option key={c.category_id} value={c.category_id}>
-                              {c.category_name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-(--color-text-muted)">Brand</span>
-                        <select
-                          value={item.brand}
-                          onChange={(e) => handleBrandChange(index, e.target.value, item.category_id)}
-                          disabled={!item.category_id}
-                          className={inputClass + ' py-1.5 text-xs disabled:opacity-50'}
-                        >
-                          <option value="">Brand...</option>
-                          {opts.brands.map((b) => (
-                            <option key={b} value={b}>
-                              {b}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-medium text-(--color-text-subtle)">Item {index + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeItem(index)}
+                      className="p-1 rounded-md text-(--color-text-muted) hover:text-(--color-danger) hover:bg-red-50 transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Row 1: Category, Brand, Product */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+                    <div>
+                      <span className={tinyLabel}>Category</span>
+                      <AutocompleteInput
+                        value={item.category_name}
+                        onChange={(text) => handleCategoryType(index, text)}
+                        onSelect={(opt) => handleCategoryPick(index, opt)}
+                        placeholder="Category..."
+                        className={inputClass + ' py-1.5 text-xs'}
+                        options={categories.map((c) => ({
+                          value: c.category_id,
+                          label: c.category_name,
+                        }))}
+                      />
                     </div>
                     <div>
-                      <span className="text-[10px] text-(--color-text-muted)">Item</span>
-                      <select
-                        value={item.product_id}
-                        onChange={(e) => handleProductChange(index, e.target.value)}
-                        disabled={!item.brand}
-                        className={inputClass + ' py-1.5 text-xs disabled:opacity-50'}
-                      >
-                        <option value="">Item...</option>
-                        {opts.products.map((p) => (
-                          <option key={p.product_id} value={p.product_id}>
-                            {p.product_name}
-                          </option>
-                        ))}
-                      </select>
+                      <span className={tinyLabel}>Brand</span>
+                      <AutocompleteInput
+                        value={item.brand}
+                        onChange={(text) => handleBrandType(index, text)}
+                        onSelect={(opt) => handleBrandPick(index, opt, item.category_id)}
+                        placeholder="Brand..."
+                        className={inputClass + ' py-1.5 text-xs'}
+                        options={(opts.brands || []).map((b) => ({
+                          value: b,
+                          label: b,
+                        }))}
+                      />
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <span className="text-[10px] text-(--color-text-muted)">Qty</span>
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => handleQuantityChange(index, e.target.value)}
-                          className={inputClass + ' py-1.5 text-xs'}
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-(--color-text-muted)">USD</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={item.selling_price}
-                          onChange={(e) => handlePriceChange(index, 'selling_price', e.target.value)}
-                          placeholder="0.00"
-                          className={inputClass + ' py-1.5 text-xs'}
-                        />
-                      </div>
-                      <div>
-                        <span className="text-[10px] text-(--color-text-muted)">UZS</span>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={item.selling_price_uzs}
-                          onChange={(e) => handlePriceChange(index, 'selling_price_uzs', e.target.value)}
-                          placeholder="0"
-                          className={inputClass + ' py-1.5 text-xs'}
-                        />
-                      </div>
+                    <div>
+                      <span className={tinyLabel}>Product</span>
+                      <AutocompleteInput
+                        value={item.product_name}
+                        onChange={(text) => handleProductType(index, text)}
+                        onSelect={(opt) => handleProductPick(index, opt)}
+                        placeholder="Product..."
+                        className={inputClass + ' py-1.5 text-xs'}
+                        options={(opts.products || []).map((p) => ({
+                          value: p.product_id,
+                          label: p.product_name,
+                        }))}
+                      />
                     </div>
                   </div>
 
-                  {/* Desktop: Grid layout */}
-                  <div className="hidden sm:grid grid-cols-[1fr_1fr_1fr_60px_90px_90px_28px] gap-2 items-end">
+                  {/* Row 2: Qty, Cost, Selling, Weight, Cargo, Cust Cargo */}
+                  <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
                     <div>
-                      {index === 0 && (
-                        <span className="text-[10px] text-(--color-text-muted)">Category</span>
-                      )}
-                      <select
-                        value={item.category_id}
-                        onChange={(e) => handleCategoryChange(index, e.target.value)}
-                        className={inputClass + ' py-1.5 text-xs'}
-                      >
-                        <option value="">Category...</option>
-                        {categories.map((c) => (
-                          <option key={c.category_id} value={c.category_id}>
-                            {c.category_name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      {index === 0 && (
-                        <span className="text-[10px] text-(--color-text-muted)">Brand</span>
-                      )}
-                      <select
-                        value={item.brand}
-                        onChange={(e) => handleBrandChange(index, e.target.value, item.category_id)}
-                        disabled={!item.category_id}
-                        className={inputClass + ' py-1.5 text-xs disabled:opacity-50'}
-                      >
-                        <option value="">Brand...</option>
-                        {opts.brands.map((b) => (
-                          <option key={b} value={b}>
-                            {b}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      {index === 0 && (
-                        <span className="text-[10px] text-(--color-text-muted)">Item</span>
-                      )}
-                      <select
-                        value={item.product_id}
-                        onChange={(e) => handleProductChange(index, e.target.value)}
-                        disabled={!item.brand}
-                        className={inputClass + ' py-1.5 text-xs disabled:opacity-50'}
-                      >
-                        <option value="">Item...</option>
-                        {opts.products.map((p) => (
-                          <option key={p.product_id} value={p.product_id}>
-                            {p.product_name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      {index === 0 && (
-                        <span className="text-[10px] text-(--color-text-muted)">Qty</span>
-                      )}
+                      <span className={tinyLabel}>Qty</span>
                       <input
                         type="number"
                         min="1"
                         value={item.quantity}
-                        onChange={(e) => handleQuantityChange(index, e.target.value)}
+                        onChange={(e) => handleItemField(index, 'quantity', e.target.value)}
                         className={inputClass + ' py-1.5 text-xs'}
                       />
                     </div>
                     <div>
-                      {index === 0 && (
-                        <span className="text-[10px] text-(--color-text-muted)">Price (USD)</span>
-                      )}
+                      <span className={tinyLabel}>Cost (KRW)</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.cost_price}
+                        onChange={(e) => handleCostChange(index, e.target.value)}
+                        placeholder="0"
+                        className={inputClass + ' py-1.5 text-xs'}
+                      />
+                    </div>
+                    <div>
+                      <span className={tinyLabel}>Sell (USD)</span>
                       <input
                         type="number"
                         step="0.01"
                         value={item.selling_price}
-                        onChange={(e) => handlePriceChange(index, 'selling_price', e.target.value)}
+                        onChange={(e) => handleItemField(index, 'selling_price', e.target.value)}
                         placeholder="0.00"
                         className={inputClass + ' py-1.5 text-xs'}
                       />
                     </div>
                     <div>
-                      {index === 0 && (
-                        <span className="text-[10px] text-(--color-text-muted)">Price (UZS)</span>
-                      )}
+                      <span className={tinyLabel}>Weight (kg)</span>
                       <input
                         type="number"
                         step="0.01"
-                        value={item.selling_price_uzs}
-                        onChange={(e) => handlePriceChange(index, 'selling_price_uzs', e.target.value)}
-                        placeholder="0"
+                        value={item.weight_kg}
+                        onChange={(e) => handleItemField(index, 'weight_kg', e.target.value)}
+                        placeholder="0.00"
                         className={inputClass + ' py-1.5 text-xs'}
                       />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => removeItem(index)}
-                      className="p-1.5 rounded-md text-(--color-text-muted) hover:text-(--color-danger) hover:bg-red-50 transition-colors cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
+                    <div>
+                      <span className={tinyLabel}>Cargo ($)</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.cargo}
+                        onChange={(e) => handleItemField(index, 'cargo', e.target.value)}
+                        placeholder="0.00"
+                        className={inputClass + ' py-1.5 text-xs'}
+                      />
+                    </div>
+                    <div>
+                      <span className={tinyLabel}>Cust. Cargo ($)</span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={item.customer_cargo}
+                        onChange={(e) => handleItemField(index, 'customer_cargo', e.target.value)}
+                        placeholder="0.00"
+                        className={inputClass + ' py-1.5 text-xs'}
+                      />
+                    </div>
                   </div>
                 </div>
               )
@@ -546,17 +701,31 @@ export default function OrderModal({
           </div>
 
           {/* Totals */}
-          <div className="flex items-center justify-end gap-4 mt-3 pt-3 border-t border-(--color-border-base)">
+          <div className="flex flex-wrap items-center justify-end gap-4 sm:gap-6 mt-3 pt-3 border-t border-(--color-border-base)">
             <div className="text-right">
-              <span className="text-[10px] text-(--color-text-muted) block">Total (USD)</span>
+              <span className="text-[10px] text-(--color-text-muted) block">Total Weight</span>
               <span className="text-sm font-semibold text-(--color-text-base) tabular-nums">
-                ${computedTotal.toFixed(2)}
+                {totals.totalWeight.toFixed(2)} kg
               </span>
             </div>
             <div className="text-right">
-              <span className="text-[10px] text-(--color-text-muted) block">Total (UZS)</span>
+              <span className="text-[10px] text-(--color-text-muted) block">Cargo</span>
               <span className="text-sm font-semibold text-(--color-text-base) tabular-nums">
-                {computedTotalUzs.toLocaleString()}
+                ${totals.totalCargo.toFixed(2)}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-(--color-text-muted) block">Cust. Cargo</span>
+              <span className="text-sm font-semibold text-(--color-text-base) tabular-nums">
+                ${totals.totalCustomerCargo.toFixed(2)}
+              </span>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-(--color-text-muted) block">
+                Total Price (+${Number(form.service_fee || 3).toFixed(0)} fee)
+              </span>
+              <span className="text-sm font-bold text-(--color-primary) tabular-nums">
+                ${totals.totalPrice.toFixed(2)}
               </span>
             </div>
           </div>
