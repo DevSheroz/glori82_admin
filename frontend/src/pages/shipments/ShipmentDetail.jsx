@@ -6,9 +6,11 @@ function getStatusBadge(status) {
     case 'pending':
       return <Badge variant="warning">Pending</Badge>
     case 'shipped':
-      return <Badge variant="info">Shipped</Badge>
-    case 'delivered':
-      return <Badge variant="success">Delivered</Badge>
+      return <Badge variant="neutral">Shipped</Badge>
+    case 'received':
+      return <Badge variant="info">Received</Badge>
+    case 'completed':
+      return <Badge variant="success">Completed</Badge>
     default:
       return <Badge variant="neutral">{status}</Badge>
   }
@@ -56,7 +58,7 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
           Orders ({shipment.order_count})
         </span>
         <div className="rounded-md ring-1 ring-(--color-border-base) overflow-x-auto">
-          <table className="w-full text-sm min-w-[600px]">
+          <table className="w-full text-sm min-w-150">
             <thead>
               <tr className="border-b border-(--color-border-base) bg-(--color-bg-subtle)">
                 <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">

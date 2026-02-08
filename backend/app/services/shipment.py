@@ -167,6 +167,16 @@ async def create_shipment(db: AsyncSession, data: ShipmentCreate) -> dict:
     for order_id in data.order_ids:
         shipment.shipment_orders.append(ShipmentOrder(order_id=order_id))
     db.add(shipment)
+    await db.flush()
+
+    # Stamp shipping_number on all orders in this shipment
+    if data.order_ids:
+        orders_result = await db.execute(
+            select(Order).where(Order.order_id.in_(data.order_ids))
+        )
+        for order in orders_result.scalars().all():
+            order.shipping_number = shipment.shipment_number
+
     await db.commit()
     return await get_shipment(db, shipment.shipment_id)
 
@@ -188,10 +198,39 @@ async def update_shipment(
     for key, value in fields.items():
         setattr(shipment, key, value)
 
+    # Cascade status to all orders in this shipment
+    if "status" in fields:
+        order_ids = [so.order_id for so in shipment.shipment_orders]
+        if order_ids:
+            orders_result = await db.execute(
+                select(Order).where(Order.order_id.in_(order_ids))
+            )
+            for order in orders_result.scalars().all():
+                order.status = fields["status"]
+
     if data.order_ids is not None:
+        # Clear shipping_number from removed orders
+        old_order_ids = {so.order_id for so in shipment.shipment_orders}
+        new_order_ids = set(data.order_ids)
+        removed_ids = old_order_ids - new_order_ids
+        if removed_ids:
+            removed_result = await db.execute(
+                select(Order).where(Order.order_id.in_(removed_ids))
+            )
+            for order in removed_result.scalars().all():
+                order.shipping_number = None
+
         shipment.shipment_orders.clear()
         for order_id in data.order_ids:
             shipment.shipment_orders.append(ShipmentOrder(order_id=order_id))
+
+        # Stamp shipping_number on new set of orders
+        if new_order_ids:
+            added_result = await db.execute(
+                select(Order).where(Order.order_id.in_(new_order_ids))
+            )
+            for order in added_result.scalars().all():
+                order.shipping_number = shipment.shipment_number
 
     await db.commit()
     return await get_shipment(db, shipment_id)

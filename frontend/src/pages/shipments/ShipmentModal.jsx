@@ -119,7 +119,8 @@ export default function ShipmentModal({
             >
               <option value="pending">Pending</option>
               <option value="shipped">Shipped</option>
-              <option value="delivered">Delivered</option>
+              <option value="received">Received</option>
+              <option value="completed">Completed</option>
             </select>
           </div>
         )}
