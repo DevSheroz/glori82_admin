@@ -1,9 +1,31 @@
 import Badge from '../../components/Badge'
-import Button from '../../components/Button'
-import { Pencil, Trash2 } from 'lucide-react'
 
-export function getColumns({ onEdit, onDelete }) {
+const checkboxClass = 'rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer'
+
+export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelected }) {
   return [
+    {
+      key: 'select',
+      label: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={onToggleAll}
+          className={checkboxClass}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      width: '40px',
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(row.category_id)}
+          onChange={() => onToggleSelect(row.category_id)}
+          onClick={(e) => e.stopPropagation()}
+          className={checkboxClass}
+        />
+      ),
+    },
     {
       key: 'category_name',
       label: 'Name',
@@ -38,21 +60,6 @@ export function getColumns({ onEdit, onDelete }) {
           </div>
         )
       },
-    },
-    {
-      key: 'actions',
-      label: '',
-      width: '100px',
-      render: (row) => (
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          <Button variant="ghost" size="sm" onClick={() => onEdit(row)}>
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => onDelete(row)}>
-            <Trash2 className="w-3.5 h-3.5 text-(--color-danger)" />
-          </Button>
-        </div>
-      ),
     },
   ]
 }

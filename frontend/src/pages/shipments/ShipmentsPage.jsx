@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Truck } from 'lucide-react'
+import { Plus, Truck, Pencil, Trash2, X } from 'lucide-react'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
 import Table from '../../components/Table'
@@ -27,6 +27,11 @@ export default function ShipmentsPage() {
   const [saving, setSaving] = useState(false)
 
   const [detailShipment, setDetailShipment] = useState(null)
+
+  // Selection
+  const [selectedIds, setSelectedIds] = useState(new Set())
+
+  // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState(null)
 
   const fetchData = useCallback(async () => {
@@ -42,6 +47,7 @@ export default function ShipmentsPage() {
       ])
       setShipments(shipmentsRes.data.data)
       setTotal(shipmentsRes.data.total)
+      setSelectedIds(new Set())
 
       // Mark orders that are already in a shipment
       const ordersInShipments = new Set()
@@ -71,9 +77,13 @@ export default function ShipmentsPage() {
     setPage(1)
   }, [filterStatus])
 
-  const handleEdit = (shipment) => {
-    setEditingShipment(shipment)
-    setModalOpen(true)
+  const handleEditSelected = () => {
+    const shipmentId = [...selectedIds][0]
+    const shipment = shipments.find((s) => s.shipment_id === shipmentId)
+    if (shipment) {
+      setEditingShipment(shipment)
+      setModalOpen(true)
+    }
   }
 
   const handleCreate = () => {
@@ -100,15 +110,25 @@ export default function ShipmentsPage() {
     }
   }
 
-  const handleDelete = async () => {
+  const handleBulkDelete = async () => {
     if (!deleteTarget) return
     try {
-      await shipmentsApi.delete(deleteTarget.shipment_id)
+      await Promise.all(deleteTarget.map((id) => shipmentsApi.delete(id)))
       setDeleteTarget(null)
       fetchData()
     } catch (err) {
       console.error('Delete failed:', err)
-      alert('Failed to delete shipment.')
+      alert('Failed to delete shipments.')
+    }
+  }
+
+  const handleStatusChange = async (shipmentId, newStatus) => {
+    try {
+      await shipmentsApi.update(shipmentId, { status: newStatus })
+      fetchData()
+    } catch (err) {
+      console.error('Status update failed:', err)
+      alert('Failed to update status.')
     }
   }
 
@@ -122,10 +142,30 @@ export default function ShipmentsPage() {
     }
   }
 
+  const toggleSelect = (shipmentId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(shipmentId)) next.delete(shipmentId)
+      else next.add(shipmentId)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (selectedIds.size === shipments.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(shipments.map((s) => s.shipment_id)))
+    }
+  }
+
   const columns = getColumns({
-    onEdit: handleEdit,
-    onDelete: (shipment) => setDeleteTarget(shipment),
     onRowClick: handleRowClick,
+    onStatusChange: handleStatusChange,
+    selectedIds,
+    onToggleSelect: toggleSelect,
+    onToggleAll: toggleAll,
+    allSelected: shipments.length > 0 && selectedIds.size === shipments.length,
   })
 
   const selectClass =
@@ -158,7 +198,8 @@ export default function ShipmentsPage() {
             <option value="">All Status</option>
             <option value="pending">Pending</option>
             <option value="shipped">Shipped</option>
-            <option value="delivered">Delivered</option>
+            <option value="received">Received</option>
+            <option value="completed">Completed</option>
           </select>
 
           {filterStatus && (
@@ -171,6 +212,39 @@ export default function ShipmentsPage() {
           )}
         </div>
       </Container>
+
+      {/* Bulk Actions */}
+      {selectedIds.size > 0 && (
+        <Container className="p-3!">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-(--color-text-base)">
+              {selectedIds.size} selected
+            </span>
+            <div className="flex items-center gap-2">
+              {selectedIds.size === 1 && (
+                <Button variant="secondary" size="sm" onClick={handleEditSelected}>
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
+                </Button>
+              )}
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setDeleteTarget([...selectedIds])}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete ({selectedIds.size})
+              </Button>
+            </div>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="ml-auto text-xs text-(--color-text-subtle) hover:text-(--color-text-base) cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </Container>
+      )}
 
       <Container className="p-0!">
         {loading ? (
@@ -231,6 +305,7 @@ export default function ShipmentsPage() {
         shipment={detailShipment}
       />
 
+      {/* Delete Confirmation */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
@@ -239,12 +314,14 @@ export default function ShipmentsPage() {
           />
           <div className="relative bg-white rounded-lg ring-1 ring-(--color-border-base) shadow-lg w-full max-w-sm mx-4 p-5">
             <h3 className="text-base font-semibold text-(--color-text-base) mb-2">
-              Delete Shipment
+              Delete {deleteTarget.length === 1 ? 'Shipment' : `${deleteTarget.length} Shipments`}
             </h3>
             <p className="text-sm text-(--color-text-subtle) mb-5">
               Are you sure you want to delete{' '}
               <span className="font-medium text-(--color-text-base)">
-                {deleteTarget.shipment_number}
+                {deleteTarget.length === 1
+                  ? shipments.find((s) => s.shipment_id === deleteTarget[0])?.shipment_number
+                  : `${deleteTarget.length} shipments`}
               </span>
               ? The orders will not be deleted.
             </p>
@@ -252,7 +329,7 @@ export default function ShipmentsPage() {
               <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
                 Cancel
               </Button>
-              <Button variant="danger" onClick={handleDelete}>
+              <Button variant="danger" onClick={handleBulkDelete}>
                 Delete
               </Button>
             </div>

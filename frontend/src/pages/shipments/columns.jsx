@@ -1,22 +1,43 @@
-import Badge from '../../components/Badge'
-import Button from '../../components/Button'
-import { Pencil, Trash2 } from 'lucide-react'
+const statusOptions = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'shipped', label: 'Shipped' },
+  { value: 'received', label: 'Received' },
+  { value: 'completed', label: 'Completed' },
+]
 
-function getStatusBadge(status) {
-  switch (status) {
-    case 'pending':
-      return <Badge variant="warning">Pending</Badge>
-    case 'shipped':
-      return <Badge variant="info">Shipped</Badge>
-    case 'delivered':
-      return <Badge variant="success">Delivered</Badge>
-    default:
-      return <Badge variant="neutral">{status}</Badge>
-  }
+const statusColors = {
+  pending: 'text-amber-600 bg-amber-50 ring-amber-200',
+  shipped: 'text-gray-600 bg-gray-50 ring-gray-200',
+  received: 'text-blue-600 bg-blue-50 ring-blue-200',
+  completed: 'text-green-600 bg-green-50 ring-green-200',
 }
 
-export function getColumns({ onEdit, onDelete, onRowClick }) {
+const checkboxClass = 'rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer'
+
+export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected }) {
   return [
+    {
+      key: 'select',
+      label: (
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={onToggleAll}
+          className={checkboxClass}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ),
+      width: '40px',
+      render: (row) => (
+        <input
+          type="checkbox"
+          checked={selectedIds.has(row.shipment_id)}
+          onChange={() => onToggleSelect(row.shipment_id)}
+          onClick={(e) => e.stopPropagation()}
+          className={checkboxClass}
+        />
+      ),
+    },
     {
       key: 'shipment_number',
       label: 'Shipment #',
@@ -36,7 +57,24 @@ export function getColumns({ onEdit, onDelete, onRowClick }) {
     {
       key: 'status',
       label: 'Status',
-      render: (row) => getStatusBadge(row.status),
+      render: (row) => (
+        <select
+          value={row.status}
+          onChange={(e) => {
+            e.stopPropagation()
+            if (e.target.value !== row.status) {
+              onStatusChange(row.shipment_id, e.target.value)
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-[length:12px] bg-[right_6px_center] bg-no-repeat ${statusColors[row.status] || ''}`}
+          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")` }}
+        >
+          {statusOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      ),
     },
     {
       key: 'order_count',
@@ -110,21 +148,6 @@ export function getColumns({ onEdit, onDelete, onRowClick }) {
               })
             : '—'}
         </span>
-      ),
-    },
-    {
-      key: 'actions',
-      label: '',
-      width: '100px',
-      render: (row) => (
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-          <Button variant="ghost" size="sm" onClick={() => onEdit(row)}>
-            <Pencil className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="sm" onClick={() => onDelete(row)}>
-            <Trash2 className="w-3.5 h-3.5 text-(--color-danger)" />
-          </Button>
-        </div>
       ),
     },
   ]
