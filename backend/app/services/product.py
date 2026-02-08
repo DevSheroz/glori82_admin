@@ -2,6 +2,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.product_attribute_value import ProductAttributeValue
 from app.schemas.product import ProductCreate, ProductUpdate
@@ -11,6 +12,7 @@ from app.services.currency import calculate_prices
 SORTABLE_COLUMNS = {
     "product_name": Product.product_name,
     "stock_quantity": Product.stock_quantity,
+    "stock_status": Product.stock_status,
     "packaged_weight_grams": Product.packaged_weight_grams,
     "cost_price": Product.cost_price,
     "selling_price": Product.selling_price,
@@ -47,7 +49,20 @@ async def get_products(
             selectinload(Product.attribute_values).selectinload(ProductAttributeValue.attribute)
         ).order_by(order).offset(offset).limit(page_size)
     )
-    return list(result.scalars().all()), total
+    products = list(result.scalars().all())
+
+    if products:
+        product_ids = [p.product_id for p in products]
+        counts_result = await db.execute(
+            select(OrderItem.product_id, func.coalesce(func.sum(OrderItem.quantity), 0))
+            .where(OrderItem.product_id.in_(product_ids))
+            .group_by(OrderItem.product_id)
+        )
+        counts_map = {row[0]: row[1] for row in counts_result.all()}
+        for p in products:
+            p.times_ordered = counts_map.get(p.product_id, 0)
+
+    return products, total
 
 
 async def get_product(db: AsyncSession, product_id: int) -> Product | None:
@@ -56,7 +71,14 @@ async def get_product(db: AsyncSession, product_id: int) -> Product | None:
         .options(selectinload(Product.attribute_values).selectinload(ProductAttributeValue.attribute))
         .where(Product.product_id == product_id)
     )
-    return result.scalar_one_or_none()
+    product = result.scalar_one_or_none()
+    if product:
+        count_result = await db.execute(
+            select(func.coalesce(func.sum(OrderItem.quantity), 0))
+            .where(OrderItem.product_id == product_id)
+        )
+        product.times_ordered = count_result.scalar()
+    return product
 
 
 async def create_product(db: AsyncSession, data: ProductCreate) -> Product:

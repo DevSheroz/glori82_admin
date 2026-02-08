@@ -1,6 +1,9 @@
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator
+
+StockStatus = Literal["in_stock", "out_of_stock", "pre_order"]
 
 from app.schemas.category_attribute import ProductAttributeValueCreate, ProductAttributeValueResponse
 
@@ -17,6 +20,7 @@ class ProductBase(BaseModel):
     volume_ml: int | None = None
     stock_quantity: int = 0
     reorder_level: int = 0
+    stock_status: StockStatus = "in_stock"
     is_active: bool = True
 
 
@@ -36,12 +40,14 @@ class ProductUpdate(BaseModel):
     volume_ml: int | None = None
     stock_quantity: int | None = None
     reorder_level: int | None = None
+    stock_status: StockStatus | None = None
     is_active: bool | None = None
     attribute_values: list[ProductAttributeValueCreate] | None = None
 
 
 class ProductResponse(ProductBase):
     product_id: int
+    times_ordered: int = 0
     attribute_values: list[ProductAttributeValueResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
