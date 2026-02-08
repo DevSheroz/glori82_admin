@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, Users } from 'lucide-react'
+import { Plus, Users, Pencil, Trash2, X } from 'lucide-react'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
 import Table from '../../components/Table'
@@ -28,6 +28,9 @@ export default function CustomersPage() {
   const [editingCustomer, setEditingCustomer] = useState(null)
   const [saving, setSaving] = useState(false)
 
+  // Selection
+  const [selectedIds, setSelectedIds] = useState(new Set())
+
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState(null)
 
@@ -40,6 +43,7 @@ export default function CustomersPage() {
       const res = await customersApi.getAll(params)
       setCustomers(res.data.data)
       setTotal(res.data.total)
+      setSelectedIds(new Set())
     } catch (err) {
       setError('Failed to load customers. Make sure the backend is running.')
       console.error(err)
@@ -56,9 +60,13 @@ export default function CustomersPage() {
     setPage(1)
   }, [filterActive])
 
-  const handleEdit = (customer) => {
-    setEditingCustomer(customer)
-    setModalOpen(true)
+  const handleEditSelected = () => {
+    const customerId = [...selectedIds][0]
+    const customer = customers.find((c) => c.customer_id === customerId)
+    if (customer) {
+      setEditingCustomer(customer)
+      setModalOpen(true)
+    }
   }
 
   const handleCreate = () => {
@@ -85,21 +93,40 @@ export default function CustomersPage() {
     }
   }
 
-  const handleDelete = async () => {
+  const handleBulkDelete = async () => {
     if (!deleteTarget) return
     try {
-      await customersApi.delete(deleteTarget.customer_id)
+      await Promise.all(deleteTarget.map((id) => customersApi.delete(id)))
       setDeleteTarget(null)
       fetchData()
     } catch (err) {
       console.error('Delete failed:', err)
-      alert('Failed to delete customer.')
+      alert('Failed to delete customers.')
+    }
+  }
+
+  const toggleSelect = (customerId) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(customerId)) next.delete(customerId)
+      else next.add(customerId)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (selectedIds.size === customers.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(customers.map((c) => c.customer_id)))
     }
   }
 
   const columns = getColumns({
-    onEdit: handleEdit,
-    onDelete: (customer) => setDeleteTarget(customer),
+    selectedIds,
+    onToggleSelect: toggleSelect,
+    onToggleAll: toggleAll,
+    allSelected: customers.length > 0 && selectedIds.size === customers.length,
   })
 
   const selectClass =
@@ -146,6 +173,39 @@ export default function CustomersPage() {
           )}
         </div>
       </Container>
+
+      {/* Bulk Actions */}
+      {selectedIds.size > 0 && (
+        <Container className="p-3!">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-(--color-text-base)">
+              {selectedIds.size} selected
+            </span>
+            <div className="flex items-center gap-2">
+              {selectedIds.size === 1 && (
+                <Button variant="secondary" size="sm" onClick={handleEditSelected}>
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
+                </Button>
+              )}
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => setDeleteTarget([...selectedIds])}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete ({selectedIds.size})
+              </Button>
+            </div>
+            <button
+              onClick={() => setSelectedIds(new Set())}
+              className="ml-auto text-xs text-(--color-text-subtle) hover:text-(--color-text-base) cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </Container>
+      )}
 
       {/* Table */}
       <Container className="p-0!">
@@ -210,12 +270,14 @@ export default function CustomersPage() {
           />
           <div className="relative bg-white rounded-lg ring-1 ring-(--color-border-base) shadow-lg w-full max-w-sm mx-4 p-5">
             <h3 className="text-base font-semibold text-(--color-text-base) mb-2">
-              Delete Customer
+              Delete {deleteTarget.length === 1 ? 'Customer' : `${deleteTarget.length} Customers`}
             </h3>
             <p className="text-sm text-(--color-text-subtle) mb-5">
               Are you sure you want to delete{' '}
               <span className="font-medium text-(--color-text-base)">
-                {deleteTarget.customer_name}
+                {deleteTarget.length === 1
+                  ? customers.find((c) => c.customer_id === deleteTarget[0])?.customer_name
+                  : `${deleteTarget.length} customers`}
               </span>
               ? This action cannot be undone.
             </p>
@@ -223,7 +285,7 @@ export default function CustomersPage() {
               <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
                 Cancel
               </Button>
-              <Button variant="danger" onClick={handleDelete}>
+              <Button variant="danger" onClick={handleBulkDelete}>
                 Delete
               </Button>
             </div>

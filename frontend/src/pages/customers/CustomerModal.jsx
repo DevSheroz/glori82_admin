@@ -6,7 +6,8 @@ const initialForm = {
   customer_name: '',
   contact_phone: '',
   telegram_id: '',
-  location: '',
+  address: '',
+  city: '',
   is_active: true,
 }
 
@@ -20,7 +21,8 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
         customer_name: customer.customer_name ?? '',
         contact_phone: customer.contact_phone ?? '',
         telegram_id: customer.telegram_id ?? '',
-        location: customer.location ?? '',
+        address: customer.address ?? '',
+        city: customer.city ?? '',
         is_active: customer.is_active ?? true,
       })
     } else {
@@ -39,7 +41,8 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
       customer_name: form.customer_name,
       contact_phone: form.contact_phone || null,
       telegram_id: form.telegram_id || null,
-      location: form.location || null,
+      address: form.address || null,
+      city: form.city || null,
       is_active: form.is_active,
     })
   }
@@ -103,15 +106,27 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
           </div>
         </div>
 
-        <div>
-          <label className={labelClass}>Location</label>
-          <input
-            name="location"
-            value={form.location}
-            onChange={handleChange}
-            className={inputClass}
-            placeholder="City, country"
-          />
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={labelClass}>Address</label>
+            <input
+              name="address"
+              value={form.address}
+              onChange={handleChange}
+              className={inputClass}
+              placeholder="Street address"
+            />
+          </div>
+          <div>
+            <label className={labelClass}>City</label>
+            <input
+              name="city"
+              value={form.city}
+              onChange={handleChange}
+              className={inputClass}
+              placeholder="e.g. Tashkent"
+            />
+          </div>
         </div>
 
         <label className="flex items-center gap-2 cursor-pointer">
