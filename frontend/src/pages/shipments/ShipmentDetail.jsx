@@ -1,3 +1,4 @@
+import { Clock } from 'lucide-react'
 import Modal from '../../components/Modal'
 import Badge from '../../components/Badge'
 
@@ -116,6 +117,41 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
           </table>
         </div>
       </div>
+
+      {/* History timeline */}
+      {shipment.history?.length > 0 && (
+        <div className="mt-5">
+          <span className="text-xs font-medium text-(--color-text-subtle) block mb-3">
+            History
+          </span>
+          <div>
+            {shipment.history.map((entry, idx) => (
+              <div key={entry.id} className="flex gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="w-3.5 h-3.5 shrink-0 rounded-full bg-(--color-bg-base) ring-2 ring-(--color-border-base) flex items-center justify-center">
+                    <Clock className="w-2 h-2 text-(--color-text-muted)" />
+                  </div>
+                  {idx < shipment.history.length - 1 && (
+                    <div className="w-px flex-1 bg-(--color-border-base) my-1" />
+                  )}
+                </div>
+                <div className="min-w-0 pb-4">
+                  <p className="text-sm text-(--color-text-base) -mt-0.5">{entry.action}</p>
+                  <p className="text-xs text-(--color-text-muted) mt-0.5">
+                    {new Date(entry.created_at).toLocaleString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </Modal>
   )
 }

@@ -8,7 +8,7 @@ from app.models.customer import Customer
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
-from app.models.shipment import Shipment, ShipmentOrder
+from app.models.shipment import Shipment, ShipmentHistory, ShipmentOrder
 from app.schemas.shipment import ShipmentCreate, ShipmentUpdate
 from app.services.currency import get_rates
 
@@ -77,6 +77,11 @@ def _build_response(shipment: Shipment, usd_to_uzs: Decimal = Decimal(0)) -> dic
     ) if usd_to_uzs else Decimal(0)
     grand_total_uzs = total_orders_uzs + shipment_fee_uzs
 
+    history = [
+        {"id": h.id, "action": h.action, "created_at": h.created_at}
+        for h in (shipment.history or [])
+    ]
+
     return {
         "shipment_id": shipment.shipment_id,
         "shipment_number": shipment.shipment_number,
@@ -91,6 +96,7 @@ def _build_response(shipment: Shipment, usd_to_uzs: Decimal = Decimal(0)) -> dic
         "total_orders_uzs": total_orders_uzs,
         "grand_total_uzs": grand_total_uzs,
         "orders": orders_data,
+        "history": history,
     }
 
 
@@ -102,6 +108,7 @@ _shipment_load_options = [
     selectinload(Shipment.shipment_orders)
     .selectinload(ShipmentOrder.order)
     .selectinload(Order.customer),
+    selectinload(Shipment.history),
 ]
 
 
@@ -169,6 +176,11 @@ async def create_shipment(db: AsyncSession, data: ShipmentCreate) -> dict:
     db.add(shipment)
     await db.flush()
 
+    db.add(ShipmentHistory(
+        shipment_id=shipment.shipment_id,
+        action=f"Shipment created with {len(data.order_ids)} order(s)",
+    ))
+
     # Stamp shipping_number on all orders in this shipment
     if data.order_ids:
         orders_result = await db.execute(
@@ -194,9 +206,24 @@ async def update_shipment(
     if not shipment:
         return None
 
+    old_status = shipment.status
+    old_notes = shipment.notes
+    old_order_ids = {so.order_id for so in shipment.shipment_orders}
+
     fields = data.model_dump(exclude_unset=True, exclude={"order_ids"})
     for key, value in fields.items():
         setattr(shipment, key, value)
+
+    # Track changes for history
+    history_actions: list[str] = []
+
+    if "status" in fields and fields["status"] != old_status:
+        history_actions.append(
+            f"Status changed from {old_status} to {fields['status']}"
+        )
+
+    if "notes" in fields and fields["notes"] != old_notes:
+        history_actions.append("Notes updated")
 
     # Cascade status to all orders in this shipment
     if "status" in fields:
@@ -209,10 +236,28 @@ async def update_shipment(
                 order.status = fields["status"]
 
     if data.order_ids is not None:
-        # Clear shipping_number from removed orders
-        old_order_ids = {so.order_id for so in shipment.shipment_orders}
         new_order_ids = set(data.order_ids)
+        added_ids = new_order_ids - old_order_ids
         removed_ids = old_order_ids - new_order_ids
+
+        # Build order number lookup for history message
+        all_changed_ids = added_ids | removed_ids
+        order_number_map = {}
+        if all_changed_ids:
+            changed_result = await db.execute(
+                select(Order).where(Order.order_id.in_(all_changed_ids))
+            )
+            for o in changed_result.scalars().all():
+                order_number_map[o.order_id] = o.order_number
+
+        if added_ids:
+            added_nums = [order_number_map.get(oid, str(oid)) for oid in added_ids]
+            history_actions.append(f"Added order(s): {', '.join(added_nums)}")
+        if removed_ids:
+            removed_nums = [order_number_map.get(oid, str(oid)) for oid in removed_ids]
+            history_actions.append(f"Removed order(s): {', '.join(removed_nums)}")
+
+        # Clear shipping_number from removed orders
         if removed_ids:
             removed_result = await db.execute(
                 select(Order).where(Order.order_id.in_(removed_ids))
@@ -231,6 +276,12 @@ async def update_shipment(
             )
             for order in added_result.scalars().all():
                 order.shipping_number = shipment.shipment_number
+
+    # Record history
+    if not history_actions:
+        history_actions.append("Shipment updated")
+    for action in history_actions:
+        db.add(ShipmentHistory(shipment_id=shipment_id, action=action))
 
     await db.commit()
     return await get_shipment(db, shipment_id)

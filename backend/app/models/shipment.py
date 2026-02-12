@@ -18,6 +18,10 @@ class Shipment(Base):
     shipment_orders: Mapped[list["ShipmentOrder"]] = relationship(
         back_populates="shipment", cascade="all, delete-orphan"
     )
+    history: Mapped[list["ShipmentHistory"]] = relationship(
+        back_populates="shipment", cascade="all, delete-orphan",
+        order_by="ShipmentHistory.created_at.desc()",
+    )
 
 
 class ShipmentOrder(Base):
@@ -31,3 +35,16 @@ class ShipmentOrder(Base):
 
     shipment: Mapped["Shipment"] = relationship(back_populates="shipment_orders")
     order: Mapped["Order"] = relationship()
+
+
+class ShipmentHistory(Base):
+    __tablename__ = "shipment_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    shipment_id: Mapped[int] = mapped_column(
+        ForeignKey("shipments.shipment_id", ondelete="CASCADE")
+    )
+    action: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+    shipment: Mapped["Shipment"] = relationship(back_populates="history")

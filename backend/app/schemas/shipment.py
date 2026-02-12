@@ -33,6 +33,14 @@ class ShipmentOrderSummary(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ShipmentHistoryEntry(BaseModel):
+    id: int
+    action: str
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ShipmentResponse(BaseModel):
     shipment_id: int
     shipment_number: str
@@ -47,5 +55,6 @@ class ShipmentResponse(BaseModel):
     total_orders_uzs: Decimal
     grand_total_uzs: Decimal
     orders: list[ShipmentOrderSummary] = []
+    history: list[ShipmentHistoryEntry] = []
 
     model_config = ConfigDict(from_attributes=True)
