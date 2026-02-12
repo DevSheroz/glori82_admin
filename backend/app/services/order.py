@@ -24,6 +24,7 @@ SORTABLE_COLUMNS = {
 async def get_orders(
     db: AsyncSession,
     status: str | None = None,
+    payment_status: str | None = None,
     customer_id: int | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
@@ -35,6 +36,8 @@ async def get_orders(
     base = select(Order)
     if status is not None:
         base = base.where(Order.status == status)
+    if payment_status is not None:
+        base = base.where(Order.payment_status == payment_status)
     if customer_id is not None:
         base = base.where(Order.customer_id == customer_id)
     if date_from is not None:
@@ -105,7 +108,7 @@ async def _resolve_customer(db: AsyncSession, data) -> int | None:
     return customer.customer_id
 
 
-ITEM_EXTRA_FIELDS = {"product_name", "brand", "category_id", "category_name", "packaged_weight_grams"}
+ITEM_EXTRA_FIELDS = {"product_name", "brand", "category_id", "category_name", "packaged_weight_grams", "attribute_values"}
 
 
 async def _resolve_product(db: AsyncSession, item_fields: dict) -> int | None:
@@ -134,6 +137,19 @@ async def _resolve_product(db: AsyncSession, item_fields: dict) -> int | None:
     )
     db.add(product)
     await db.flush()
+
+    attr_values = item_fields.get("attribute_values")
+    if attr_values:
+        for av in attr_values:
+            av_data = av if isinstance(av, dict) else av.model_dump()
+            if av_data.get("attribute_id") and av_data.get("value"):
+                db.add(ProductAttributeValue(
+                    product_id=product.product_id,
+                    attribute_id=av_data["attribute_id"],
+                    value=av_data["value"],
+                ))
+        await db.flush()
+
     return product.product_id
 
 

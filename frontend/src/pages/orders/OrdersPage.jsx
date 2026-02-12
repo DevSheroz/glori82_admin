@@ -23,6 +23,7 @@ export default function OrdersPage() {
 
   // Filters
   const [filterStatus, setFilterStatus] = useState('')
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState('')
   const [filterCustomer, setFilterCustomer] = useState('')
 
   // Sorting
@@ -49,6 +50,7 @@ export default function OrdersPage() {
     try {
       const params = { page, page_size: PAGE_SIZE }
       if (filterStatus) params.status = filterStatus
+      if (filterPaymentStatus) params.payment_status = filterPaymentStatus
       if (filterCustomer) params.customer_id = filterCustomer
       if (sortBy) {
         params.sort_by = sortBy
@@ -73,7 +75,7 @@ export default function OrdersPage() {
     } finally {
       setLoading(false)
     }
-  }, [filterStatus, filterCustomer, sortBy, sortDir, page])
+  }, [filterStatus, filterPaymentStatus, filterCustomer, sortBy, sortDir, page])
 
   useEffect(() => {
     fetchData()
@@ -82,7 +84,7 @@ export default function OrdersPage() {
   // Reset to page 1 when filters change
   useEffect(() => {
     setPage(1)
-  }, [filterStatus, filterCustomer])
+  }, [filterStatus, filterPaymentStatus, filterCustomer])
 
   const handleEditSelected = () => {
     const orderId = [...selectedIds][0]
@@ -138,6 +140,15 @@ export default function OrdersPage() {
     }
   }
 
+  const handlePaymentStatusChange = async (orderId, newPaymentStatus) => {
+    try {
+      await ordersApi.update(orderId, { payment_status: newPaymentStatus })
+      fetchData()
+    } catch (err) {
+      console.error('Payment status update failed:', err)
+    }
+  }
+
   const handleSort = (key) => {
     if (sortBy === key) {
       setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
@@ -167,6 +178,7 @@ export default function OrdersPage() {
 
   const columns = getColumns({
     onStatusChange: handleStatusChange,
+    onPaymentStatusChange: handlePaymentStatusChange,
     selectedIds,
     onToggleSelect: toggleSelect,
     onToggleAll: toggleAll,
@@ -212,6 +224,19 @@ export default function OrdersPage() {
             <option value="completed">Completed</option>
           </select>
 
+          <select
+            value={filterPaymentStatus}
+            onChange={(e) => setFilterPaymentStatus(e.target.value)}
+            className={selectClass}
+          >
+            <option value="">All Payment</option>
+            <option value="unpaid">Unpaid</option>
+            <option value="paid_card">Paid (Card)</option>
+            <option value="paid_cash">Paid (Cash)</option>
+            <option value="partial">Partial Payment</option>
+            <option value="prepayment">Prepayment</option>
+          </select>
+
           <SearchSelect
             value={filterCustomer}
             onChange={(val) => setFilterCustomer(val)}
@@ -222,10 +247,11 @@ export default function OrdersPage() {
             }))}
           />
 
-          {(filterStatus || filterCustomer) && (
+          {(filterStatus || filterPaymentStatus || filterCustomer) && (
             <button
               onClick={() => {
                 setFilterStatus('')
+                setFilterPaymentStatus('')
                 setFilterCustomer('')
               }}
               className="text-xs text-(--color-text-subtle) hover:text-(--color-text-base) underline cursor-pointer"

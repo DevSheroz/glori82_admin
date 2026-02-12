@@ -86,6 +86,13 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
 
+    paid_card = order.paid_card or Decimal(0)
+    paid_cash = order.paid_cash or Decimal(0)
+    total_paid = paid_card + paid_cash
+    unpaid = (total_price_uzs - total_paid).quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    ) if total_price_uzs else None
+
     return {
         "order_id": order.order_id,
         "order_number": order.order_number,
@@ -106,6 +113,10 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
         "notes": order.notes,
         "service_fee": service_fee,
         "shipping_number": order.shipping_number,
+        "payment_status": order.payment_status or "unpaid",
+        "paid_card": paid_card,
+        "paid_cash": paid_cash,
+        "unpaid": unpaid,
         "customer_name": order.customer.customer_name if order.customer else None,
         "items": items,
     }
@@ -122,6 +133,7 @@ async def _usd_to_uzs_rate() -> Decimal:
 @router.get("", response_model=PaginatedResponse[OrderResponse])
 async def list_orders(
     status: str | None = None,
+    payment_status: str | None = None,
     customer_id: int | None = None,
     date_from: datetime | None = None,
     date_to: datetime | None = None,
@@ -134,6 +146,7 @@ async def list_orders(
     orders, total = await order_service.get_orders(
         db,
         status=status,
+        payment_status=payment_status,
         customer_id=customer_id,
         date_from=date_from,
         date_to=date_to,

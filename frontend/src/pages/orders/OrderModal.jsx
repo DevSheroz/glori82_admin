@@ -64,6 +64,7 @@ const blankItem = {
   weight_kg: '',
   cargo: '',
   customer_cargo: '',
+  attribute_values: [],
 }
 
 const initialForm = {
@@ -73,6 +74,10 @@ const initialForm = {
   address: '',
   phone: '',
   status: 'pending',
+  payment_status: 'unpaid',
+  paid_card: '',
+  paid_cash: '',
+  prepay_method: 'card',
   notes: '',
   service_fee: '3.00',
   items: [{ ...blankItem }],
@@ -92,6 +97,7 @@ export default function OrderModal({
   const [form, setForm] = useState(initialForm)
   const [rowOptions, setRowOptions] = useState({})
   const [krwToUsd, setKrwToUsd] = useState(0)
+  const [usdToUzs, setUsdToUzs] = useState(0)
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false)
   const customerRef = useRef(null)
 
@@ -123,10 +129,17 @@ export default function OrderModal({
     return map
   }, [customers])
 
+  const categoryAttrsMap = useMemo(() => {
+    const map = {}
+    for (const c of categories) map[c.category_id] = c.attributes || []
+    return map
+  }, [categories])
+
   useEffect(() => {
     if (!open) return
     currencyApi.getRates().then((res) => {
       setKrwToUsd(res.data.krw_to_usd || 0)
+      setUsdToUzs(res.data.usd_to_uzs || 0)
     }).catch(() => {})
   }, [open])
 
@@ -176,11 +189,22 @@ export default function OrderModal({
                 weight_kg: weightKg ? weightKg.toFixed(2) : '',
                 cargo: weightKg ? (weightKg * qty * 12).toFixed(2) : '',
                 customer_cargo: weightKg ? (weightKg * qty * 13).toFixed(2) : '',
+                attribute_values: (product?.attribute_values || []).map((av) => ({
+                  attribute_id: av.attribute_id,
+                  attribute_name: av.attribute_name,
+                  value: av.value,
+                })),
               }
             })
           : [{ ...blankItem }]
 
       const customer = order.customer_id ? customerMap[order.customer_id] : null
+
+      const paidCard = order.paid_card ?? ''
+      const paidCash = order.paid_cash ?? ''
+      const prepayMethod = order.payment_status === 'prepayment'
+        ? (Number(paidCard) > 0 ? 'card' : 'cash')
+        : 'card'
 
       setForm({
         customer_id: order.customer_id ?? '',
@@ -189,6 +213,10 @@ export default function OrderModal({
         address: customer?.address ?? '',
         phone: customer?.contact_phone ?? '',
         status: order.status ?? 'pending',
+        payment_status: order.payment_status ?? 'unpaid',
+        paid_card: paidCard,
+        paid_cash: paidCash,
+        prepay_method: prepayMethod,
         notes: order.notes ?? '',
         service_fee: order.service_fee ?? '3.00',
         items,
@@ -238,6 +266,27 @@ export default function OrderModal({
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
+  const handlePaymentStatusChange = (e) => {
+    const value = e.target.value
+    setForm((prev) => {
+      const next = { ...prev, payment_status: value }
+      if (value === 'unpaid') {
+        next.paid_card = ''
+        next.paid_cash = ''
+      } else if (value === 'paid_card') {
+        next.paid_card = totals.totalPriceUzs ? Math.round(totals.totalPriceUzs).toString() : ''
+        next.paid_cash = ''
+      } else if (value === 'paid_cash') {
+        next.paid_card = ''
+        next.paid_cash = totals.totalPriceUzs ? Math.round(totals.totalPriceUzs).toString() : ''
+      } else if (value === 'partial' || value === 'prepayment') {
+        next.paid_card = ''
+        next.paid_cash = ''
+      }
+      return next
+    })
+  }
+
   /* ── Item: Category handlers ── */
   const handleCategoryType = (index, text) => {
     setForm((prev) => {
@@ -252,10 +301,21 @@ export default function OrderModal({
   }
 
   const handleCategoryPick = async (index, option) => {
+    const attrs = categoryAttrsMap[option.value] || []
     setForm((prev) => {
       const items = prev.items.map((it, i) =>
         i === index
-          ? { ...blankItem, category_id: option.value, category_name: option.label, quantity: it.quantity }
+          ? {
+              ...blankItem,
+              category_id: option.value,
+              category_name: option.label,
+              quantity: it.quantity,
+              attribute_values: attrs.map((a) => ({
+                attribute_id: a.attribute_id,
+                attribute_name: a.attribute_name,
+                value: '',
+              })),
+            }
           : it
       )
       return { ...prev, items }
@@ -330,6 +390,13 @@ export default function OrderModal({
             updated.cargo = (wt * qty * 12).toFixed(2)
             updated.customer_cargo = (wt * qty * 13).toFixed(2)
           }
+          if (product.attribute_values?.length > 0) {
+            updated.attribute_values = product.attribute_values.map((av) => ({
+              attribute_id: av.attribute_id,
+              attribute_name: av.attribute_name,
+              value: av.value,
+            }))
+          }
         }
         return updated
       })
@@ -365,6 +432,18 @@ export default function OrderModal({
           updated.customer_cargo = (wt * qty * 13).toFixed(2)
         }
         return updated
+      })
+      return { ...prev, items }
+    })
+  }
+
+  const handleAttrValueChange = (itemIndex, attrIndex, value) => {
+    setForm((prev) => {
+      const items = prev.items.map((it, i) => {
+        if (i !== itemIndex) return it
+        const avs = [...(it.attribute_values || [])]
+        avs[attrIndex] = { ...avs[attrIndex], value }
+        return { ...it, attribute_values: avs }
       })
       return { ...prev, items }
     })
@@ -409,9 +488,12 @@ export default function OrderModal({
 
     const serviceFee = Number(form.service_fee) || 3
     const totalPrice = totalSelling + totalCustomerCargo + serviceFee
+    const totalPriceUzs = usdToUzs > 0 ? totalPrice * usdToUzs : 0
+    const totalPaid = (Number(form.paid_card) || 0) + (Number(form.paid_cash) || 0)
+    const unpaid = totalPriceUzs - totalPaid
 
-    return { totalSelling, totalWeight, totalCargo, totalCustomerCargo, totalPrice }
-  }, [form.items, form.service_fee])
+    return { totalSelling, totalWeight, totalCargo, totalCustomerCargo, totalPrice, totalPriceUzs, unpaid }
+  }, [form.items, form.service_fee, form.paid_card, form.paid_cash, usdToUzs])
 
   /* ── Submit ── */
   const handleSubmit = (e) => {
@@ -423,6 +505,9 @@ export default function OrderModal({
       customer_address: form.address || null,
       customer_phone: form.phone || null,
       status: form.status,
+      payment_status: form.payment_status,
+      paid_card: Number(form.paid_card) || 0,
+      paid_cash: Number(form.paid_cash) || 0,
       total_amount: totals.totalSelling || null,
       notes: form.notes || null,
       service_fee: Number(form.service_fee) || 3,
@@ -439,6 +524,9 @@ export default function OrderModal({
           selling_price_uzs: it.selling_price_uzs ? Number(it.selling_price_uzs) : null,
           cost_price: it.cost_price ? Number(it.cost_price) : null,
           packaged_weight_grams: it.weight_kg ? Math.round(Number(it.weight_kg) * 1000) : null,
+          attribute_values: (it.attribute_values || [])
+            .filter((av) => av.value)
+            .map((av) => ({ attribute_id: av.attribute_id, value: av.value })),
         })),
     }
     if (order) {
@@ -541,6 +629,92 @@ export default function OrderModal({
           </div>
         </div>
 
+        {/* Payment */}
+        <div>
+          <h3 className="text-xs font-semibold text-(--color-text-base) uppercase tracking-wider mb-3">
+            Payment
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Payment Status</label>
+              <select name="payment_status" value={form.payment_status} onChange={handlePaymentStatusChange} className={inputClass}>
+                <option value="unpaid">Unpaid</option>
+                <option value="paid_card">Paid (Card)</option>
+                <option value="paid_cash">Paid (Cash)</option>
+                <option value="partial">Partial Payment</option>
+                <option value="prepayment">Prepayment</option>
+              </select>
+            </div>
+
+            {/* Partial Payment: show card + cash inputs */}
+            {form.payment_status === 'partial' && (
+              <>
+                <div>
+                  <label className={labelClass}>Paid Card (UZS)</label>
+                  <input name="paid_card" type="number" step="1" min="0" value={form.paid_card} onChange={handleChange} className={inputClass} placeholder="0" />
+                </div>
+                <div>
+                  <label className={labelClass}>Paid Cash (UZS)</label>
+                  <input name="paid_cash" type="number" step="1" min="0" value={form.paid_cash} onChange={handleChange} className={inputClass} placeholder="0" />
+                </div>
+              </>
+            )}
+
+            {/* Prepayment: method selector + amount */}
+            {form.payment_status === 'prepayment' && (
+              <>
+                <div>
+                  <label className={labelClass}>Prepaid via</label>
+                  <select name="prepay_method" value={form.prepay_method} onChange={(e) => {
+                    const method = e.target.value
+                    setForm((prev) => {
+                      const amount = prev.prepay_method === 'card' ? prev.paid_card : prev.paid_cash
+                      return {
+                        ...prev,
+                        prepay_method: method,
+                        paid_card: method === 'card' ? amount : '',
+                        paid_cash: method === 'cash' ? amount : '',
+                      }
+                    })
+                  }} className={inputClass}>
+                    <option value="card">Card</option>
+                    <option value="cash">Cash</option>
+                  </select>
+                </div>
+                <div>
+                  <label className={labelClass}>Prepaid Amount (UZS)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={form.prepay_method === 'card' ? form.paid_card : form.paid_cash}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setForm((prev) => ({
+                        ...prev,
+                        paid_card: prev.prepay_method === 'card' ? val : '',
+                        paid_cash: prev.prepay_method === 'cash' ? val : '',
+                      }))
+                    }}
+                    className={inputClass}
+                    placeholder="0"
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Unpaid display */}
+          {form.payment_status !== 'unpaid' && totals.totalPriceUzs > 0 && (
+            <div className="mt-2 flex items-center gap-3 text-sm">
+              <span className="text-(--color-text-subtle)">Unpaid:</span>
+              <span className={`font-semibold tabular-nums ${totals.unpaid > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                {Math.round(totals.unpaid).toLocaleString()} UZS
+              </span>
+            </div>
+          )}
+        </div>
+
         {/* Notes */}
         <div>
           <label className={labelClass}>Notes</label>
@@ -626,6 +800,23 @@ export default function OrderModal({
                       />
                     </div>
                   </div>
+
+                  {/* Row 1.5: Attributes */}
+                  {item.category_id && (item.attribute_values || []).length > 0 && (
+                    <div className="flex flex-wrap items-end gap-2 mb-2">
+                      {item.attribute_values.map((av, ai) => (
+                        <div key={av.attribute_id} className="min-w-[100px] flex-1">
+                          <span className={tinyLabel}>{av.attribute_name}</span>
+                          <input
+                            value={av.value}
+                            onChange={(e) => handleAttrValueChange(index, ai, e.target.value)}
+                            placeholder={av.attribute_name}
+                            className={inputClass + ' py-1.5 text-xs'}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Row 2: Qty, Cost, Selling, Weight, Cargo, Cust Cargo */}
                   <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">

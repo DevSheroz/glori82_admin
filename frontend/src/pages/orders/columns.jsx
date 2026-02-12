@@ -32,6 +32,22 @@ const statusColors = {
   completed: 'text-green-600 bg-green-50 ring-green-200',
 }
 
+const paymentOptions = [
+  { value: 'unpaid', label: 'Unpaid' },
+  { value: 'paid_card', label: 'Paid (Card)' },
+  { value: 'paid_cash', label: 'Paid (Cash)' },
+  { value: 'partial', label: 'Partial' },
+  { value: 'prepayment', label: 'Prepayment' },
+]
+
+const paymentColors = {
+  unpaid: 'text-red-600 bg-red-50 ring-red-200',
+  paid_card: 'text-green-600 bg-green-50 ring-green-200',
+  paid_cash: 'text-green-600 bg-green-50 ring-green-200',
+  partial: 'text-amber-600 bg-amber-50 ring-amber-200',
+  prepayment: 'text-purple-600 bg-purple-50 ring-purple-200',
+}
+
 const checkboxClass = 'rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer'
 
 function uniqueList(items, key) {
@@ -45,7 +61,7 @@ function uniqueList(items, key) {
   ))
 }
 
-export function getColumns({ onStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected, sortBy, sortDir, onSort }) {
+export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected, sortBy, sortDir, onSort }) {
   return [
     {
       key: 'select',
@@ -227,8 +243,41 @@ export function getColumns({ onStatusChange, selectedIds, onToggleSelect, onTogg
       ),
     },
     {
+      key: 'payment_status',
+      label: 'Payment',
+      render: (row) => (
+        <select
+          value={row.payment_status || 'unpaid'}
+          onChange={(e) => {
+            e.stopPropagation()
+            if (e.target.value !== row.payment_status) {
+              onPaymentStatusChange(row.order_id, e.target.value)
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${paymentColors[row.payment_status] || paymentColors.unpaid}`}
+          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")` }}
+        >
+          {paymentOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+      ),
+    },
+    {
+      key: 'unpaid',
+      label: 'Unpaid (UZS)',
+      minWidth: '130px',
+      render: (row) => (
+        <span className={`tabular-nums font-medium ${row.unpaid != null && Number(row.unpaid) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+          {row.unpaid != null ? Number(row.unpaid).toLocaleString() : '—'}
+        </span>
+      ),
+    },
+    {
       key: 'shipping_number',
       label: <SortHeader label="Shipping #" sortKey="shipping_number" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
+      minWidth: '130px',
       render: (row) => (
         <span className="text-(--color-text-subtle)">
           {row.shipping_number || '—'}

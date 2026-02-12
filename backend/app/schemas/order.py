@@ -4,7 +4,10 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
+from app.schemas.category_attribute import ProductAttributeValueCreate
+
 ORDER_STATUSES = Literal["pending", "shipped", "received", "completed"]
+PAYMENT_STATUSES = Literal["unpaid", "paid_card", "paid_cash", "partial", "prepayment"]
 
 
 class OrderItemBase(BaseModel):
@@ -21,6 +24,7 @@ class OrderItemCreate(OrderItemBase):
     category_id: int | None = None
     category_name: str | None = None
     packaged_weight_grams: int | None = None
+    attribute_values: list[ProductAttributeValueCreate] | None = None
 
 
 class OrderItemResponse(OrderItemBase):
@@ -43,6 +47,9 @@ class OrderBase(BaseModel):
     notes: str | None = None
     service_fee: Decimal = Decimal("3.00")
     shipping_number: str | None = None
+    payment_status: PAYMENT_STATUSES = "unpaid"
+    paid_card: Decimal = Decimal("0")
+    paid_cash: Decimal = Decimal("0")
 
 
 class OrderCreate(BaseModel):
@@ -58,6 +65,9 @@ class OrderCreate(BaseModel):
     notes: str | None = None
     service_fee: Decimal = Decimal("3.00")
     shipping_number: str | None = None
+    payment_status: PAYMENT_STATUSES = "unpaid"
+    paid_card: Decimal = Decimal("0")
+    paid_cash: Decimal = Decimal("0")
     items: list[OrderItemCreate] = []
 
 
@@ -73,6 +83,9 @@ class OrderUpdate(BaseModel):
     notes: str | None = None
     service_fee: Decimal | None = None
     shipping_number: str | None = None
+    payment_status: PAYMENT_STATUSES | None = None
+    paid_card: Decimal | None = None
+    paid_cash: Decimal | None = None
     items: list[OrderItemCreate] | None = None
 
 
@@ -89,6 +102,7 @@ class OrderResponse(OrderBase):
     grand_total_uzs: Decimal | None = None
     total_price_usd: Decimal | None = None
     total_price_uzs: Decimal | None = None
+    unpaid: Decimal | None = None
     items: list[OrderItemResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
