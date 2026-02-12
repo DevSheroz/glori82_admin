@@ -29,17 +29,13 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
         isCollapsed ? 'w-16' : 'w-60'
       } h-full shrink-0 bg-white border-r border-(--color-border-base) flex flex-col z-30 transition-all duration-300`}
     >
-      <div className="h-14 flex items-center justify-between px-3 border-b border-(--color-border-base)">
-        {!isCollapsed && (
-          <span className="text-base font-semibold text-(--color-text-base) tracking-tight pl-2">
-            glori82 Admin
-          </span>
-        )}
+      <div className="h-14 flex items-center px-3 border-b border-(--color-border-base)">
+        <span className={`text-base font-semibold text-(--color-text-base) tracking-tight pl-2 whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'flex-1 opacity-100'}`}>
+          glori82
+        </span>
         <button
           onClick={isMobile ? onMobileClose : onToggle}
-          className={`p-2 rounded-md text-(--color-text-subtle) hover:bg-(--color-bg-subtle) hover:text-(--color-text-base) transition-colors ${
-            isCollapsed ? 'mx-auto' : ''
-          }`}
+          className="p-2 shrink-0 rounded-md text-(--color-text-subtle) hover:bg-(--color-bg-subtle) hover:text-(--color-text-base) transition-colors"
           title={isMobile ? 'Close menu' : isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
@@ -57,7 +53,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
             onClick={onMobileClose}
             title={isCollapsed ? item.label : undefined}
             className={({ isActive }) =>
-              `flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium overflow-hidden whitespace-nowrap transition-colors ${
                 isActive
                   ? 'bg-(--color-bg-component) text-(--color-text-base)'
                   : 'text-(--color-text-subtle) hover:bg-(--color-bg-subtle) hover:text-(--color-text-base)'
@@ -65,7 +61,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
             }
           >
             <item.icon className="w-4 h-4 shrink-0" strokeWidth={2} />
-            {!isCollapsed && item.label}
+            {item.label}
           </NavLink>
         ))}
       </nav>
