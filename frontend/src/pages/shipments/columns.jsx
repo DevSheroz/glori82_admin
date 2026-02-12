@@ -67,7 +67,7 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
             }
           }}
           onClick={(e) => e.stopPropagation()}
-          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-[length:12px] bg-[right_6px_center] bg-no-repeat ${statusColors[row.status] || ''}`}
+          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${statusColors[row.status] || ''}`}
           style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")` }}
         >
           {statusOptions.map((opt) => (
