@@ -1,9 +1,21 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import currency, customers, dashboard, orders, product_categories, products, shipments
+from app.api import auth, currency, customers, dashboard, orders, product_categories, products, shipments
+from app.core.database import Base, engine
+import app.models
 
-app = FastAPI(title="Glori82 Admin Inventory API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    yield
+
+
+app = FastAPI(title="Glori82 Admin Inventory API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/api")
 app.include_router(customers.router, prefix="/api")
 app.include_router(product_categories.router, prefix="/api")
 app.include_router(products.router, prefix="/api")
