@@ -219,8 +219,10 @@ async def update_order(db: AsyncSession, order_id: int, data: OrderUpdate) -> Or
         setattr(order, key, value)
 
     if data.items is not None:
-        order.items.clear()
-        order.items.extend(await _build_order_items(db, data.items))
+        new_items = await _build_order_items(db, data.items)
+        if new_items or not order.items:
+            order.items.clear()
+            order.items.extend(new_items)
 
     await db.commit()
     return await get_order(db, order_id)

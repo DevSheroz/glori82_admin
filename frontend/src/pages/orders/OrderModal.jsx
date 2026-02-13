@@ -513,7 +513,7 @@ export default function OrderModal({
       notes: form.notes || null,
       service_fee: Number(form.service_fee) || 3,
       items: form.items
-        .filter((it) => it.product_id || it.product_name)
+        .filter((it) => it.product_id || it.product_name || it.cost_price || it.selling_price)
         .map((it) => ({
           product_id: it.product_id ? Number(it.product_id) : null,
           product_name: it.product_name || null,
