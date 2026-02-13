@@ -23,10 +23,13 @@ class ShipmentOrderSummary(BaseModel):
     order_number: str
     customer_name: str | None = None
     total_amount: Decimal | None = None
-    total_amount_uzs: Decimal | None = None
-    weight_kg: Decimal
-    shipping_fee_uzs: Decimal
+    selling_usd: Decimal | None = None
+    customer_cargo_usd: Decimal | None = None
+    order_total_usd: Decimal | None = None
     order_total_uzs: Decimal
+    weight_kg: Decimal
+    shipping_fee_usd: Decimal | None = None
+    shipping_fee_uzs: Decimal
     status: str | None = None
     items_summary: str | None = None
 
@@ -50,6 +53,7 @@ class ShipmentResponse(BaseModel):
     order_count: int
     customer_count: int
     total_weight_kg: Decimal
+    total_service_fee_usd: Decimal
     shipment_fee: Decimal
     shipment_fee_uzs: Decimal
     total_orders_uzs: Decimal

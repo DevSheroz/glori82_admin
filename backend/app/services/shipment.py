@@ -30,28 +30,38 @@ def _items_summary(order: Order) -> str | None:
     return f"{names[0]} +{len(names) - 1} more"
 
 
-def _compute_order_total_uzs(order: Order) -> Decimal:
+def _compute_order_selling_usd(order: Order) -> Decimal:
     total = Decimal(0)
     for item in order.items:
-        if item.selling_price_uzs:
-            total += item.selling_price_uzs * item.quantity
+        if item.selling_price:
+            total += item.selling_price * item.quantity
     return total
 
 
 def _build_response(shipment: Shipment, usd_to_uzs: Decimal = Decimal(0)) -> dict:
     orders_data = []
     total_weight = Decimal(0)
-    total_orders_uzs = Decimal(0)
+    total_selling_usd = Decimal(0)
+    total_service_fee = Decimal(0)
     customer_ids = set()
 
     for so in shipment.shipment_orders:
         order = so.order
         weight = _compute_order_weight(order)
         total_weight += weight
-        order_uzs = _compute_order_total_uzs(order)
-        total_orders_uzs += order_uzs
+        selling_usd = _compute_order_selling_usd(order)
+        total_selling_usd += selling_usd
         if order.customer_id:
             customer_ids.add(order.customer_id)
+
+        service_fee = order.service_fee if order.service_fee is not None else Decimal("3.00")
+        total_service_fee += service_fee
+        selling_usd += service_fee
+        customer_cargo_usd = weight * Decimal(13)
+        order_total_usd = selling_usd + customer_cargo_usd
+        order_total_uzs = (order_total_usd * usd_to_uzs).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        ) if usd_to_uzs else Decimal(0)
 
         order_shipping_fee_usd = weight * Decimal(12)
         order_shipping_fee_uzs = (order_shipping_fee_usd * usd_to_uzs).quantize(
@@ -63,10 +73,13 @@ def _build_response(shipment: Shipment, usd_to_uzs: Decimal = Decimal(0)) -> dic
             "order_number": order.order_number,
             "customer_name": order.customer.customer_name if order.customer else None,
             "total_amount": order.total_amount,
-            "total_amount_uzs": order_uzs,
+            "selling_usd": selling_usd,
+            "customer_cargo_usd": customer_cargo_usd,
+            "order_total_usd": order_total_usd,
+            "order_total_uzs": order_total_uzs,
             "weight_kg": weight,
+            "shipping_fee_usd": order_shipping_fee_usd,
             "shipping_fee_uzs": order_shipping_fee_uzs,
-            "order_total_uzs": order_uzs + order_shipping_fee_uzs,
             "status": order.status,
             "items_summary": _items_summary(order),
         })
@@ -75,7 +88,8 @@ def _build_response(shipment: Shipment, usd_to_uzs: Decimal = Decimal(0)) -> dic
     shipment_fee_uzs = (shipment_fee * usd_to_uzs).quantize(
         Decimal("0.01"), rounding=ROUND_HALF_UP
     ) if usd_to_uzs else Decimal(0)
-    grand_total_uzs = total_orders_uzs + shipment_fee_uzs
+    total_orders_uzs = sum(o["order_total_uzs"] for o in orders_data)
+    grand_total_uzs = total_orders_uzs
 
     history = [
         {"id": h.id, "action": h.action, "created_at": h.created_at}
@@ -91,6 +105,7 @@ def _build_response(shipment: Shipment, usd_to_uzs: Decimal = Decimal(0)) -> dic
         "order_count": len(orders_data),
         "customer_count": len(customer_ids),
         "total_weight_kg": total_weight,
+        "total_service_fee_usd": total_service_fee,
         "shipment_fee": shipment_fee,
         "shipment_fee_uzs": shipment_fee_uzs,
         "total_orders_uzs": total_orders_uzs,

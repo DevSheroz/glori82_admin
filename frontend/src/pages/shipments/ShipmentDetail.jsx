@@ -23,7 +23,7 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
   return (
     <Modal open={open} onClose={onClose} title={shipment.shipment_number} size="xl">
       {/* Summary header */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
         <div>
           <span className="text-[10px] text-(--color-text-muted) block">Status</span>
           <div className="mt-1">{getStatusBadge(shipment.status)}</div>
@@ -32,6 +32,12 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
           <span className="text-[10px] text-(--color-text-muted) block">Total Weight</span>
           <span className="text-sm font-semibold text-(--color-text-base) tabular-nums">
             {Number(shipment.total_weight_kg).toFixed(2)} kg
+          </span>
+        </div>
+        <div>
+          <span className="text-[10px] text-(--color-text-muted) block">Service Fee</span>
+          <span className="text-sm font-semibold text-(--color-text-base) tabular-nums">
+            ${Number(shipment.total_service_fee_usd).toFixed(2)}
           </span>
         </div>
         <div>
@@ -72,16 +78,16 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
                   Items
                 </th>
                 <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
-                  Total (UZS)
+                  Selling (USD)
                 </th>
                 <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
                   Weight
                 </th>
                 <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
-                  Shipping (UZS)
+                  Cargo ($13/kg)
                 </th>
                 <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
-                  Order Total (UZS)
+                  Total (UZS)
                 </th>
               </tr>
             </thead>
@@ -98,18 +104,20 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
                     {order.items_summary || '—'}
                   </td>
                   <td className="px-3 py-2 tabular-nums">
-                    {order.total_amount_uzs != null
-                      ? Number(order.total_amount_uzs).toLocaleString()
+                    {order.selling_usd != null
+                      ? `$${Number(order.selling_usd).toFixed(2)}`
                       : '—'}
                   </td>
                   <td className="px-3 py-2 tabular-nums">
                     {Number(order.weight_kg).toFixed(2)} kg
                   </td>
                   <td className="px-3 py-2 tabular-nums">
-                    {Number(order.shipping_fee_uzs).toLocaleString()}
+                    {order.customer_cargo_usd != null
+                      ? `$${Number(order.customer_cargo_usd).toFixed(2)}`
+                      : '—'}
                   </td>
                   <td className="px-3 py-2 tabular-nums font-medium">
-                    {Number(order.order_total_uzs).toLocaleString()}
+                    {Number(order.order_total_uzs).toLocaleString()} UZS
                   </td>
                 </tr>
               ))}
