@@ -170,6 +170,8 @@ async def _build_order_items(db: AsyncSession, items_data) -> list[OrderItem]:
                 item_fields["selling_price"] = product.selling_price
             if item_fields.get("selling_price_uzs") is None:
                 item_fields["selling_price_uzs"] = product.selling_price_uzs
+            if item_fields.get("packaged_weight_grams") is not None:
+                product.packaged_weight_grams = item_fields["packaged_weight_grams"]
 
         for key in ITEM_EXTRA_FIELDS:
             item_fields.pop(key, None)
