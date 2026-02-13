@@ -31,7 +31,7 @@ class ShipmentOrder(Base):
     shipment_id: Mapped[int] = mapped_column(
         ForeignKey("shipments.shipment_id", ondelete="CASCADE")
     )
-    order_id: Mapped[int] = mapped_column(ForeignKey("orders.order_id"))
+    order_id: Mapped[int] = mapped_column(ForeignKey("orders.order_id", ondelete="CASCADE"))
 
     shipment: Mapped["Shipment"] = relationship(back_populates="shipment_orders")
     order: Mapped["Order"] = relationship()
