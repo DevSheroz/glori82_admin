@@ -34,6 +34,7 @@ class OrderItemResponse(OrderItemBase):
     packaged_weight_grams: int | None = None
     brand: str | None = None
     category_name: str | None = None
+    stock_status: str | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

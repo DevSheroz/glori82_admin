@@ -137,21 +137,29 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
         }
         return (
           <ul className="space-y-1">
-            {row.items.map((it, i) => (
-              <li key={it.item_id ?? i} className="flex items-start justify-between gap-2 text-sm">
-                <span className="text-(--color-text-base)">
-                  {it.product_name}
-                  {it.product_attributes && (
-                    <span className="text-(--color-text-muted) text-xs ml-1">
-                      ({it.product_attributes})
-                    </span>
-                  )}
-                </span>
-                <span className="text-(--color-text-muted) tabular-nums shrink-0">
-                  x{it.quantity}
-                </span>
-              </li>
-            ))}
+            {row.items.map((it, i) => {
+              const inStock = it.stock_status && it.stock_status !== 'pre_order'
+              return (
+                <li
+                  key={it.item_id ?? i}
+                  className={`flex items-start justify-between gap-2 text-sm ${
+                    inStock ? 'bg-emerald-50 ring-1 ring-emerald-200 rounded px-1.5 py-0.5 -mx-1.5' : ''
+                  }`}
+                >
+                  <span className="text-(--color-text-base)">
+                    {it.product_name}
+                    {it.product_attributes && (
+                      <span className="text-(--color-text-muted) text-xs ml-1">
+                        ({it.product_attributes})
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-(--color-text-muted) tabular-nums shrink-0">
+                    x{it.quantity}
+                  </span>
+                </li>
+              )
+            })}
           </ul>
         )
       },

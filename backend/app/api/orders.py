@@ -37,6 +37,7 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
             "packaged_weight_grams": item.product.packaged_weight_grams if item.product else None,
             "brand": item.product.brand if item.product else None,
             "category_name": item.product.category.category_name if item.product and item.product.category else None,
+            "stock_status": item.product.stock_status if item.product else None,
         }
         for item in order.items
     ]
