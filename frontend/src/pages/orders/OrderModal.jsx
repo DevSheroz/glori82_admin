@@ -724,17 +724,7 @@ export default function OrderModal({
 
         {/* Items Section */}
         <div>
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-xs font-semibold text-(--color-text-base) uppercase tracking-wider">Items</h3>
-            <button
-              type="button"
-              onClick={addItem}
-              className="inline-flex items-center gap-1 text-xs font-medium text-(--color-primary) hover:underline cursor-pointer"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add Item
-            </button>
-          </div>
+          <h3 className="text-xs font-semibold text-(--color-text-base) uppercase tracking-wider mb-2">Items</h3>
 
           <div className="space-y-3">
             {form.items.map((item, index) => {
@@ -895,6 +885,17 @@ export default function OrderModal({
                 </div>
               )
             })}
+          </div>
+
+          <div className="flex justify-end mt-2">
+            <button
+              type="button"
+              onClick={addItem}
+              className="inline-flex items-center gap-1 text-xs font-medium text-(--color-primary) hover:underline cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add Item
+            </button>
           </div>
 
           {/* Totals */}
