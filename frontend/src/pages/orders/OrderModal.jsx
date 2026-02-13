@@ -411,7 +411,11 @@ export default function OrderModal({
         if (i !== index) return it
         const updated = { ...it, cost_price: costKrw }
         if (costKrw && krwToUsd > 0) {
-          updated.selling_price = (Number(costKrw) * krwToUsd * 1.5).toFixed(2)
+          const sellUsd = Number(costKrw) * krwToUsd * 1.5
+          updated.selling_price = sellUsd.toFixed(2)
+          if (usdToUzs > 0) {
+            updated.selling_price_uzs = Math.round(sellUsd * usdToUzs).toString()
+          }
         }
         return updated
       })
@@ -424,6 +428,10 @@ export default function OrderModal({
       const items = prev.items.map((it, i) => {
         if (i !== index) return it
         const updated = { ...it, [field]: value }
+        // Auto-fill selling_price_uzs when selling_price changes
+        if (field === 'selling_price' && usdToUzs > 0 && value) {
+          updated.selling_price_uzs = Math.round(Number(value) * usdToUzs).toString()
+        }
         // Auto-fill cargo when weight or quantity changes
         if (field === 'weight_grams' || field === 'quantity') {
           const grams = Number(field === 'weight_grams' ? value : it.weight_grams) || 0
