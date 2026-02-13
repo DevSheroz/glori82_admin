@@ -6,6 +6,34 @@ const api = axios.create({
     : '/api',
 })
 
+// Attach token to every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
+
+// Redirect to /login on 401
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && !error.config.url?.includes('/auth/')) {
+      localStorage.removeItem('token')
+      sessionStorage.removeItem('token')
+      window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  }
+)
+
+export const authApi = {
+  login: (user_name, password, remember_me) =>
+    api.post('/auth/login', { user_name, password, remember_me }),
+  me: () => api.get('/auth/me'),
+}
+
 export const productsApi = {
   getAll: (params) => api.get('/products', { params }),
   getById: (id) => api.get(`/products/${id}`),
