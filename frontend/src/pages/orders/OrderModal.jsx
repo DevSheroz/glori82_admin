@@ -61,7 +61,7 @@ const blankItem = {
   cost_price: '',
   selling_price: '',
   selling_price_uzs: '',
-  weight_kg: '',
+  weight_grams: '',
   cargo: '',
   customer_cargo: '',
   attribute_values: [],
@@ -186,7 +186,7 @@ export default function OrderModal({
                 cost_price: it.cost_price ?? '',
                 selling_price: it.selling_price ?? '',
                 selling_price_uzs: it.selling_price_uzs ?? '',
-                weight_kg: totalWeightKg ? totalWeightKg.toFixed(2) : '',
+                weight_grams: weightGrams || '',
                 cargo: totalWeightKg ? (totalWeightKg * 12).toFixed(2) : '',
                 customer_cargo: totalWeightKg ? (totalWeightKg * 13).toFixed(2) : '',
                 attribute_values: (product?.attribute_values || []).map((av) => ({
@@ -329,7 +329,7 @@ export default function OrderModal({
     setForm((prev) => {
       const items = prev.items.map((it, i) =>
         i === index
-          ? { ...it, brand: text, product_id: '', product_name: '', selling_price: '', selling_price_uzs: '', cost_price: '', weight_kg: '' }
+          ? { ...it, brand: text, product_id: '', product_name: '', selling_price: '', selling_price_uzs: '', cost_price: '', weight_grams: '' }
           : it
       )
       return { ...prev, items }
@@ -385,10 +385,10 @@ export default function OrderModal({
           updated.selling_price_uzs = product.selling_price_uzs ?? ''
           if (product.packaged_weight_grams) {
             const qty = Number(it.quantity) || 1
-            const totalWt = (product.packaged_weight_grams / 1000) * qty
-            updated.weight_kg = totalWt.toFixed(2)
-            updated.cargo = (totalWt * 12).toFixed(2)
-            updated.customer_cargo = (totalWt * 13).toFixed(2)
+            const totalWtKg = (product.packaged_weight_grams / 1000) * qty
+            updated.weight_grams = product.packaged_weight_grams
+            updated.cargo = (totalWtKg * 12).toFixed(2)
+            updated.customer_cargo = (totalWtKg * 13).toFixed(2)
           }
           if (product.attribute_values?.length > 0) {
             updated.attribute_values = product.attribute_values.map((av) => ({
@@ -424,11 +424,13 @@ export default function OrderModal({
       const items = prev.items.map((it, i) => {
         if (i !== index) return it
         const updated = { ...it, [field]: value }
-        // Auto-fill cargo when weight changes
-        if (field === 'weight_kg') {
-          const wt = Number(value) || 0
-          updated.cargo = (wt * 12).toFixed(2)
-          updated.customer_cargo = (wt * 13).toFixed(2)
+        // Auto-fill cargo when weight or quantity changes
+        if (field === 'weight_grams' || field === 'quantity') {
+          const grams = Number(field === 'weight_grams' ? value : it.weight_grams) || 0
+          const qty = Number(field === 'quantity' ? value : it.quantity) || 1
+          const totalKg = (grams / 1000) * qty
+          updated.cargo = (totalKg * 12).toFixed(2)
+          updated.customer_cargo = (totalKg * 13).toFixed(2)
         }
         return updated
       })
@@ -478,9 +480,9 @@ export default function OrderModal({
     for (const it of form.items) {
       const qty = Number(it.quantity) || 0
       const sell = Number(it.selling_price) || 0
-      const wt = Number(it.weight_kg) || 0
+      const grams = Number(it.weight_grams) || 0
       totalSelling += sell * qty
-      totalWeight += wt
+      totalWeight += (grams / 1000) * qty
       totalCargo += Number(it.cargo) || 0
       totalCustomerCargo += Number(it.customer_cargo) || 0
     }
@@ -522,7 +524,7 @@ export default function OrderModal({
           selling_price: it.selling_price ? Number(it.selling_price) : null,
           selling_price_uzs: it.selling_price_uzs ? Number(it.selling_price_uzs) : null,
           cost_price: it.cost_price ? Number(it.cost_price) : null,
-          packaged_weight_grams: it.weight_kg ? Math.round(Number(it.weight_kg) * 1000) : null,
+          packaged_weight_grams: it.weight_grams ? Number(it.weight_grams) : null,
           attribute_values: (it.attribute_values || [])
             .filter((av) => av.value)
             .map((av) => ({ attribute_id: av.attribute_id, value: av.value })),
@@ -857,12 +859,12 @@ export default function OrderModal({
                       )}
                     </div>
                     <div>
-                      <span className={tinyLabel}>Weight (kg)</span>
+                      <span className={tinyLabel}>Weight (g)</span>
                       <input
                         type="number"
-                        step="0.01"
-                        value={item.weight_kg}
-                        onChange={(e) => handleItemField(index, 'weight_kg', e.target.value)}
+                        step="1"
+                        value={item.weight_grams}
+                        onChange={(e) => handleItemField(index, 'weight_grams', e.target.value)}
                         placeholder="0.00"
                         className={inputClass + ' py-1.5 text-xs'}
                       />
