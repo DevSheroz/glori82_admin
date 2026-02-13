@@ -37,3 +37,6 @@ Thumbs.db
 .pytest_cache/
 .coverage
 htmlcov/
+
+# utility files
+create_user.py
