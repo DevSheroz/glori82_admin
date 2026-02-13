@@ -541,7 +541,7 @@ export default function OrderModal({
   const inputClass =
     'w-full rounded-md ring-1 ring-(--color-border-base) bg-white px-3 py-2 text-sm text-(--color-text-base) placeholder:text-(--color-text-muted) focus:outline-none focus:ring-2 focus:ring-(--color-primary) transition-shadow'
 
-  const labelClass = 'block text-xs font-medium text-(--color-text-subtle) mb-1.5'
+  const labelClass = 'block text-xs font-medium text-(--color-textø-subtle) mb-1.5'
 
   const tinyLabel = 'block text-[10px] text-(--color-text-muted) mb-0.5'
 

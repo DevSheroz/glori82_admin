@@ -162,7 +162,7 @@ async def _build_order_items(db: AsyncSession, items_data) -> list[OrderItem]:
             continue
         item_fields["product_id"] = product_id
 
-        product = await db.get(Product, product_id)
+        product = await db.get(Product, product_id, options=[selectinload(Product.attribute_values)])
         if product:
             if item_fields.get("cost_price") is None:
                 item_fields["cost_price"] = product.cost_price
@@ -172,6 +172,31 @@ async def _build_order_items(db: AsyncSession, items_data) -> list[OrderItem]:
                 item_fields["selling_price_uzs"] = product.selling_price_uzs
             if item_fields.get("packaged_weight_grams") is not None:
                 product.packaged_weight_grams = item_fields["packaged_weight_grams"]
+
+            # Sync attribute values for existing products
+            attr_values = item_fields.get("attribute_values")
+            if attr_values is not None:
+                # Build a map of incoming attribute values
+                incoming = {}
+                for av in attr_values:
+                    av_data = av if isinstance(av, dict) else av.model_dump()
+                    if av_data.get("attribute_id") and av_data.get("value"):
+                        incoming[av_data["attribute_id"]] = av_data["value"]
+
+                # Update existing, remove missing, add new
+                existing_map = {pav.attribute_id: pav for pav in product.attribute_values}
+                for attr_id, value in incoming.items():
+                    if attr_id in existing_map:
+                        existing_map[attr_id].value = value
+                    else:
+                        db.add(ProductAttributeValue(
+                            product_id=product.product_id,
+                            attribute_id=attr_id,
+                            value=value,
+                        ))
+                for attr_id, pav in existing_map.items():
+                    if attr_id not in incoming:
+                        await db.delete(pav)
 
         for key in ITEM_EXTRA_FIELDS:
             item_fields.pop(key, None)
