@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   Package,
@@ -8,7 +8,9 @@ import {
   Truck,
   X,
   Menu,
+  LogOut,
 } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -20,6 +22,14 @@ const navItems = [
 ]
 
 export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }) {
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+
+  const handleLogout = () => {
+    logout()
+    navigate('/login', { replace: true })
+  }
+
   // On mobile, always show full sidebar (not collapsed)
   const isCollapsed = isMobile ? false : collapsed
 
@@ -65,6 +75,41 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
           </NavLink>
         ))}
       </nav>
+      {user && (
+        <div className="border-t border-(--color-border-base) px-3 py-3">
+          <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
+            <div className="w-8 h-8 rounded-full bg-(--color-bg-component) flex items-center justify-center shrink-0">
+              <span className="text-xs font-medium text-(--color-text-subtle)">
+                {user.name?.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-(--color-text-base) truncate">{user.name}</p>
+                <p className="text-xs text-(--color-text-muted) truncate">{user.role}</p>
+              </div>
+            )}
+            {!isCollapsed && (
+              <button
+                onClick={handleLogout}
+                title="Logout"
+                className="p-1.5 rounded-md text-(--color-text-muted) hover:text-(--color-danger) hover:bg-(--color-bg-subtle) transition-colors"
+              >
+                <LogOut className="w-4 h-4" strokeWidth={2} />
+              </button>
+            )}
+          </div>
+          {isCollapsed && (
+            <button
+              onClick={handleLogout}
+              title="Logout"
+              className="mt-2 w-full flex justify-center p-1.5 rounded-md text-(--color-text-muted) hover:text-(--color-danger) hover:bg-(--color-bg-subtle) transition-colors"
+            >
+              <LogOut className="w-4 h-4" strokeWidth={2} />
+            </button>
+          )}
+        </div>
+      )}
     </aside>
   )
 }
