@@ -6,6 +6,7 @@ from app.models.product import Product
 from app.models.product_attribute_value import ProductAttributeValue
 from app.models.product_category import ProductCategory
 from app.models.shipment import Shipment, ShipmentOrder
+from app.models.user import User
 
 __all__ = [
     "CategoryAttribute",
@@ -17,4 +18,5 @@ __all__ = [
     "ProductCategory",
     "Shipment",
     "ShipmentOrder",
+    "User",
 ]

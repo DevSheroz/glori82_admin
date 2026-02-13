@@ -7,3 +7,6 @@ pydantic
 pydantic-settings
 python-dotenv
 httpx
+pyjwt
+bcrypt
+python-multipart
