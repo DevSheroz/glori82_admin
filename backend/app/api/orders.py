@@ -55,9 +55,10 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
         (it["selling_price"] or 0) * it["quantity"]
         for it in items
     )
-    total_selling_usd = (Decimal(str(selling_sum)) + Decimal(str(service_fee))).quantize(
+    selling_usd = Decimal(str(selling_sum)) if selling_sum else Decimal(0)
+    total_selling_usd = (selling_usd + service_fee).quantize(
         Decimal("0.01"), rounding=ROUND_HALF_UP
-    ) if selling_sum else None
+    ) if selling_usd else None
 
     total_weight_grams = sum(
         (it["packaged_weight_grams"] or 0) * it["quantity"]
@@ -76,10 +77,11 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
         Decimal("0.01"), rounding=ROUND_HALF_UP
     ) if shipping_fee_usd and usd_to_uzs else None
 
+    # Compute total in one step to match shipment calculation exactly
     total_price_usd = None
     total_price_uzs = None
-    if total_selling_usd and customer_cargo_usd:
-        total_price_usd = (total_selling_usd + customer_cargo_usd).quantize(
+    if selling_usd and customer_cargo_usd:
+        total_price_usd = (selling_usd + service_fee + customer_cargo_usd).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
         if usd_to_uzs:
