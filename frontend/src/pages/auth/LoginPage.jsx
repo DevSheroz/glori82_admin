@@ -29,7 +29,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-(--color-bg-subtle) px-4">
-      <div className="w-full max-w-[400px]">
+      <div className="w-full max-w-100">
         {/* Brand */}
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-(--color-text-base) tracking-tight">
@@ -45,13 +45,10 @@ export default function LoginPage() {
           onSubmit={handleSubmit}
           className="bg-white rounded-xl border border-(--color-border-base) shadow-sm p-8 space-y-5"
         >
-          <div>
+          <div align="center">
             <h2 className="text-lg font-semibold text-(--color-text-base)">
               Welcome back
             </h2>
-            <p className="text-sm text-(--color-text-muted) mt-0.5">
-              Sign in to your account
-            </p>
           </div>
 
           {error && (
@@ -117,7 +114,7 @@ export default function LoginPage() {
               onChange={(e) => setRememberMe(e.target.checked)}
               className="w-4 h-4 rounded border-gray-300 accent-(--color-primary)"
             />
-            <span className="text-sm text-(--color-text-subtle)">Remember me for 60 days</span>
+            <span className="text-sm text-(--color-text-subtle)">Remember</span>
           </label>
 
           {/* Submit */}
