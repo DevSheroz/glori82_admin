@@ -32,7 +32,7 @@ function getStockBadge(row) {
   }
 }
 
-export function getColumns({ categories, sortBy, sortDir, onSort, selectedIds, onToggleSelect, onToggleAll, allSelected }) {
+export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, selectedIds, onToggleSelect, onToggleAll, allSelected }) {
   return [
     {
       key: 'select',
@@ -112,6 +112,23 @@ export function getColumns({ categories, sortBy, sortDir, onSort, selectedIds, o
       ),
     },
     {
+      key: 'total_uzs',
+      label: 'Total (UZS)',
+      minWidth: '140px',
+      render: (row) => {
+        if (row.selling_price == null || row.packaged_weight_grams == null || !usdToUzs) return <span className="text-(--color-text-muted)">—</span>
+        const sellingUsd = Number(row.selling_price)
+        const customerCargo = (row.packaged_weight_grams / 1000) * 13
+        const totalUsd = sellingUsd + 3 + customerCargo
+        const totalUzs = totalUsd * usdToUzs
+        return (
+          <span className="tabular-nums font-medium">
+            {Math.round(totalUzs).toLocaleString()}
+          </span>
+        )
+      },
+    },
+    {
       key: 'selling_price',
       label: 'Selling (USD)',
       render: (row) => (
@@ -122,7 +139,7 @@ export function getColumns({ categories, sortBy, sortDir, onSort, selectedIds, o
     },
     {
       key: 'selling_price_uzs',
-      label: 'Price (UZS)',
+      label: 'Selling (UZS)',
       render: (row) => (
         <span className="tabular-nums">
           {row.selling_price_uzs != null

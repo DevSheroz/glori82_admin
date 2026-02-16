@@ -7,7 +7,7 @@ import EmptyState from '../../components/EmptyState'
 import Pagination from '../../components/Pagination'
 import ProductModal from './ProductModal'
 import { getColumns } from './columns'
-import { productsApi, categoriesApi } from '../../lib/api'
+import { productsApi, categoriesApi, currencyApi } from '../../lib/api'
 
 const PAGE_SIZE = 20
 
@@ -15,6 +15,7 @@ export default function InventoryPage() {
   const [products, setProducts] = useState([])
   const [total, setTotal] = useState(0)
   const [categories, setCategories] = useState([])
+  const [usdToUzs, setUsdToUzs] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -52,14 +53,16 @@ export default function InventoryPage() {
         params.sort_dir = sortDir
       }
 
-      const [productsRes, categoriesRes] = await Promise.all([
+      const [productsRes, categoriesRes, ratesRes] = await Promise.all([
         productsApi.getAll(params),
         categoriesApi.getAll({ page_size: 100 }),
+        currencyApi.getRates(),
       ])
       setProducts(productsRes.data.data)
       setTotal(productsRes.data.total)
       setSelectedIds(new Set())
       setCategories(categoriesRes.data.data)
+      setUsdToUzs(ratesRes.data.usd_to_uzs || 0)
     } catch (err) {
       setError('Failed to load data. Make sure the backend is running.')
       console.error(err)
@@ -151,6 +154,7 @@ export default function InventoryPage() {
 
   const columns = getColumns({
     categories,
+    usdToUzs,
     sortBy,
     sortDir,
     onSort: handleSort,
