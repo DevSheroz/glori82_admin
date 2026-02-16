@@ -11,6 +11,7 @@ from app.models.product import Product
 from app.models.product_attribute_value import ProductAttributeValue
 from app.models.product_category import ProductCategory
 from app.schemas.order import OrderCreate, OrderUpdate
+from app.services.currency import calculate_prices
 
 
 SORTABLE_COLUMNS = {
@@ -125,13 +126,27 @@ async def _resolve_product(db: AsyncSession, item_fields: dict) -> int | None:
         await db.flush()
         category_id = cat.category_id
 
+    cost_price = item_fields.get("cost_price") or 0
+    selling_price = item_fields.get("selling_price")
+    selling_price_uzs = item_fields.get("selling_price_uzs")
+
+    if cost_price and (selling_price is None or selling_price_uzs is None):
+        try:
+            prices = await calculate_prices(cost_price)
+            if selling_price is None:
+                selling_price = prices["selling_price"]
+            if selling_price_uzs is None:
+                selling_price_uzs = prices["selling_price_uzs"]
+        except Exception:
+            pass
+
     product = Product(
         product_name=item_fields["product_name"],
         brand=item_fields.get("brand") or None,
         category_id=category_id,
-        cost_price=item_fields.get("cost_price") or 0,
-        selling_price=item_fields.get("selling_price"),
-        selling_price_uzs=item_fields.get("selling_price_uzs"),
+        cost_price=cost_price,
+        selling_price=selling_price,
+        selling_price_uzs=selling_price_uzs,
         packaged_weight_grams=item_fields.get("packaged_weight_grams"),
         stock_status="pre_order",
     )

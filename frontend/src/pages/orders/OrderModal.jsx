@@ -505,8 +505,13 @@ export default function OrderModal({
   }, [form.items, form.service_fee, form.paid_card, form.paid_cash, usdToUzs])
 
   /* ── Submit ── */
+  const hasInvalidWeight = form.items.some(
+    (it) => it.weight_grams && !Number.isInteger(Number(it.weight_grams))
+  )
+
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (hasInvalidWeight) return
     const payload = {
       customer_id: form.customer_id ? Number(form.customer_id) : null,
       customer_name: form.customer_name || null,
@@ -564,7 +569,7 @@ export default function OrderModal({
           <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleSubmit} disabled={saving}>
+          <Button variant="primary" onClick={handleSubmit} disabled={saving || hasInvalidWeight}>
             {saving ? 'Saving...' : isEdit ? 'Update' : 'Create'}
           </Button>
         </>
@@ -863,9 +868,14 @@ export default function OrderModal({
                         step="1"
                         value={item.weight_grams}
                         onChange={(e) => handleItemField(index, 'weight_grams', e.target.value)}
-                        placeholder="0.00"
-                        className={inputClass + ' py-1.5 text-xs'}
+                        placeholder="0"
+                        className={`${inputClass} py-1.5 text-xs ${item.weight_grams && !Number.isInteger(Number(item.weight_grams)) ? 'ring-amber-400 ring-2' : ''}`}
                       />
+                      {item.weight_grams && !Number.isInteger(Number(item.weight_grams)) && (
+                        <span className="text-[10px] text-amber-600 mt-0.5 block">
+                          Must be whole number (grams, not kg)
+                        </span>
+                      )}
                     </div>
                     <div>
                       <span className={tinyLabel}>Cargo ($)</span>
