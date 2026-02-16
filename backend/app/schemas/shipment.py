@@ -4,7 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-SHIPMENT_STATUSES = Literal["pending", "shipped", "received", "completed"]
+SHIPMENT_STATUSES = Literal["pending", "shipped", "arrived", "received", "completed"]
 
 
 class ShipmentCreate(BaseModel):

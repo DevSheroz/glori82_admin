@@ -8,6 +8,8 @@ function getStatusBadge(status) {
       return <Badge variant="warning">Pending</Badge>
     case 'shipped':
       return <Badge variant="neutral">Shipped</Badge>
+    case 'arrived':
+      return <Badge variant="info">Arrived</Badge>
     case 'received':
       return <Badge variant="info">Received</Badge>
     case 'completed':

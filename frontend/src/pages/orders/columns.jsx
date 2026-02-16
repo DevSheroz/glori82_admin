@@ -21,6 +21,7 @@ function SortHeader({ label, sortKey, sortBy, sortDir, onSort }) {
 const statusOptions = [
   { value: 'pending', label: 'Pending', variant: 'warning' },
   { value: 'shipped', label: 'Shipped', variant: 'neutral' },
+  { value: 'arrived', label: 'Arrived', variant: 'info' },
   { value: 'received', label: 'Received', variant: 'info' },
   { value: 'completed', label: 'Completed', variant: 'success' },
 ]
@@ -28,6 +29,7 @@ const statusOptions = [
 const statusColors = {
   pending: 'text-amber-600 bg-amber-50 ring-amber-200',
   shipped: 'text-gray-600 bg-gray-50 ring-gray-200',
+  arrived: 'text-teal-600 bg-teal-50 ring-teal-200',
   received: 'text-blue-600 bg-blue-50 ring-blue-200',
   completed: 'text-green-600 bg-green-50 ring-green-200',
 }

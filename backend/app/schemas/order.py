@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 from app.schemas.category_attribute import ProductAttributeValueCreate
 
-ORDER_STATUSES = Literal["pending", "shipped", "received", "completed"]
+ORDER_STATUSES = Literal["pending", "shipped", "arrived", "received", "completed"]
 PAYMENT_STATUSES = Literal["unpaid", "paid_card", "paid_cash", "partial", "prepayment"]
 
 

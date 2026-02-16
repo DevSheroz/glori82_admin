@@ -1,6 +1,7 @@
 const statusOptions = [
   { value: 'pending', label: 'Pending' },
   { value: 'shipped', label: 'Shipped' },
+  { value: 'arrived', label: 'Arrived' },
   { value: 'received', label: 'Received' },
   { value: 'completed', label: 'Completed' },
 ]
@@ -8,6 +9,7 @@ const statusOptions = [
 const statusColors = {
   pending: 'text-amber-600 bg-amber-50 ring-amber-200',
   shipped: 'text-gray-600 bg-gray-50 ring-gray-200',
+  arrived: 'text-teal-600 bg-teal-50 ring-teal-200',
   received: 'text-blue-600 bg-blue-50 ring-blue-200',
   completed: 'text-green-600 bg-green-50 ring-green-200',
 }

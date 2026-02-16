@@ -198,6 +198,7 @@ export default function ShipmentsPage() {
             <option value="">All Status</option>
             <option value="pending">Pending</option>
             <option value="shipped">Shipped</option>
+            <option value="arrived">Arrived</option>
             <option value="received">Received</option>
             <option value="completed">Completed</option>
           </select>
