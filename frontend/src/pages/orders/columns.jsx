@@ -261,7 +261,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
           onChange={(e) => {
             e.stopPropagation()
             if (e.target.value !== row.payment_status) {
-              onPaymentStatusChange(row.order_id, e.target.value)
+              onPaymentStatusChange(row.order_id, e.target.value, row)
             }
           }}
           onClick={(e) => e.stopPropagation()}

@@ -44,8 +44,11 @@ export default function OrdersPage() {
   // Delete confirmation
   const [deleteTarget, setDeleteTarget] = useState(null)
 
-  const fetchData = useCallback(async () => {
-    setLoading(true)
+  // Payment amount prompt (for partial/prepayment)
+  const [paymentPrompt, setPaymentPrompt] = useState(null)
+
+  const fetchData = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true)
     setError(null)
     try {
       const params = { page, page_size: PAGE_SIZE }
@@ -134,18 +137,61 @@ export default function OrdersPage() {
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       await ordersApi.update(orderId, { status: newStatus })
-      fetchData()
+      fetchData(true)
     } catch (err) {
       console.error('Status update failed:', err)
     }
   }
 
-  const handlePaymentStatusChange = async (orderId, newPaymentStatus) => {
+  const handlePaymentStatusChange = async (orderId, newPaymentStatus, row) => {
+    if (newPaymentStatus === 'partial' || newPaymentStatus === 'prepayment') {
+      setPaymentPrompt({
+        orderId,
+        status: newPaymentStatus,
+        total: row?.total_price_uzs ? Number(row.total_price_uzs) : 0,
+        orderNumber: row?.order_number,
+        amount: '',
+        method: 'card',
+      })
+      return
+    }
+
     try {
-      await ordersApi.update(orderId, { payment_status: newPaymentStatus })
-      fetchData()
+      const update = { payment_status: newPaymentStatus }
+      const total = row?.total_price_uzs ? Number(row.total_price_uzs) : 0
+
+      if (newPaymentStatus === 'paid_card') {
+        update.paid_card = total
+        update.paid_cash = 0
+      } else if (newPaymentStatus === 'paid_cash') {
+        update.paid_card = 0
+        update.paid_cash = total
+      } else if (newPaymentStatus === 'unpaid') {
+        update.paid_card = 0
+        update.paid_cash = 0
+      }
+
+      await ordersApi.update(orderId, update)
+      fetchData(true)
     } catch (err) {
       console.error('Payment status update failed:', err)
+    }
+  }
+
+  const handlePaymentPromptSave = async () => {
+    if (!paymentPrompt) return
+    try {
+      const amount = Number(paymentPrompt.amount) || 0
+      const update = {
+        payment_status: paymentPrompt.status,
+        paid_card: paymentPrompt.method === 'card' ? amount : 0,
+        paid_cash: paymentPrompt.method === 'cash' ? amount : 0,
+      }
+      await ordersApi.update(paymentPrompt.orderId, update)
+      setPaymentPrompt(null)
+      fetchData(true)
+    } catch (err) {
+      console.error('Payment update failed:', err)
     }
   }
 
@@ -358,6 +404,72 @@ export default function OrdersPage() {
         categories={categories}
         saving={saving}
       />
+
+      {/* Payment Amount Prompt */}
+      {paymentPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+            onClick={() => setPaymentPrompt(null)}
+          />
+          <div className="relative bg-white rounded-lg ring-1 ring-(--color-border-base) shadow-lg w-full max-w-sm mx-4 p-5">
+            <h3 className="text-base font-semibold text-(--color-text-base) mb-1">
+              {paymentPrompt.status === 'prepayment' ? 'Prepayment' : 'Partial Payment'}
+            </h3>
+            <p className="text-sm text-(--color-text-subtle) mb-4">
+              {paymentPrompt.orderNumber}
+              {paymentPrompt.total > 0 && (
+                <span className="ml-1">
+                  — Total: <span className="font-medium text-(--color-text-base)">{Math.round(paymentPrompt.total).toLocaleString()} UZS</span>
+                </span>
+              )}
+            </p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-(--color-text-subtle) mb-1">Method</label>
+                <select
+                  value={paymentPrompt.method}
+                  onChange={(e) => setPaymentPrompt((p) => ({ ...p, method: e.target.value }))}
+                  className="w-full rounded-md ring-1 ring-(--color-border-base) bg-white px-3 py-2 text-sm text-(--color-text-base) focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
+                >
+                  <option value="card">Card</option>
+                  <option value="cash">Cash</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-(--color-text-subtle) mb-1">Amount (UZS)</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={paymentPrompt.amount ? Number(paymentPrompt.amount).toLocaleString() : ''}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/[^0-9]/g, '')
+                    setPaymentPrompt((p) => ({ ...p, amount: raw }))
+                  }}
+                  placeholder="0"
+                  autoFocus
+                  className="w-full rounded-md ring-1 ring-(--color-border-base) bg-white px-3 py-2 text-sm text-(--color-text-base) focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
+                />
+                {paymentPrompt.total > 0 && Number(paymentPrompt.amount) > 0 && (
+                  <p className="text-xs text-(--color-text-muted) mt-1">
+                    Remaining: <span className={`font-medium ${(paymentPrompt.total - Number(paymentPrompt.amount)) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                      {Math.round(paymentPrompt.total - Number(paymentPrompt.amount)).toLocaleString()} UZS
+                    </span>
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-5">
+              <Button variant="secondary" onClick={() => setPaymentPrompt(null)}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handlePaymentPromptSave}>
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation */}
       {deleteTarget && (
