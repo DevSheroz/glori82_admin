@@ -5,12 +5,15 @@ from sqlalchemy.orm import selectinload
 from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.product_attribute_value import ProductAttributeValue
+from app.models.product_category import ProductCategory
 from app.schemas.product import ProductCreate, ProductUpdate
 from app.services.currency import calculate_prices
 
 
 SORTABLE_COLUMNS = {
     "product_name": Product.product_name,
+    "brand": Product.brand,
+    "category_name": ProductCategory.category_name,
     "stock_quantity": Product.stock_quantity,
     "stock_status": Product.stock_status,
     "packaged_weight_grams": Product.packaged_weight_grams,
@@ -39,6 +42,9 @@ async def get_products(
 
     count_q = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_q)).scalar() or 0
+
+    if sort_by == "category_name":
+        query = query.outerjoin(ProductCategory, Product.category_id == ProductCategory.category_id)
 
     col = SORTABLE_COLUMNS.get(sort_by, Product.product_name)
     order = col.desc() if sort_dir == "desc" else col.asc()

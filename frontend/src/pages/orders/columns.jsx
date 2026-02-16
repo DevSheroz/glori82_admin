@@ -108,7 +108,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'category',
-      label: 'Category',
+      label: <SortHeader label="Category" sortKey="category_name" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       minWidth: '120px',
       nowrap: false,
       render: (row) => (
@@ -119,7 +119,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'brand',
-      label: 'Brand',
+      label: <SortHeader label="Brand" sortKey="brand" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       minWidth: '110px',
       nowrap: false,
       render: (row) => (

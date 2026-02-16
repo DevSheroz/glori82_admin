@@ -58,7 +58,7 @@ export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, sele
     },
     {
       key: 'product_name',
-      label: 'Name',
+      label: <SortHeader label="Name" sortKey="product_name" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       render: (row) => {
         const attrs = row.attribute_values ?? []
         const attrText = attrs.map((a) => `${a.attribute_name}: ${a.value}`).join(', ')
@@ -83,7 +83,7 @@ export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, sele
     },
     {
       key: 'brand',
-      label: 'Brand',
+      label: <SortHeader label="Brand" sortKey="brand" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       render: (row) => (
         <span className="text-(--color-text-subtle)">
           {row.brand ?? '—'}
@@ -92,7 +92,7 @@ export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, sele
     },
     {
       key: 'category',
-      label: 'Category',
+      label: <SortHeader label="Category" sortKey="category_name" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       render: (row) => {
         const cat = categories.find((c) => c.category_id === row.category_id)
         return (

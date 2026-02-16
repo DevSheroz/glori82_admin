@@ -8,7 +8,7 @@ export default function Table({ columns, data, onRowClick }) {
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 md:px-4 py-3"
+                  className="text-left text-xs font-semibold text-(--color-text-base) px-3 md:px-4 py-3"
                   style={{ ...(col.width && { width: col.width }), ...(col.minWidth && { minWidth: col.minWidth }) }}
                 >
                   {col.label}

@@ -19,6 +19,17 @@ SORTABLE_COLUMNS = {
     "status": Order.status,
     "shipping_number": Order.shipping_number,
     "order_date": Order.order_date,
+    "category_name": ProductCategory.category_name,
+    "brand": Product.brand,
+}
+
+SORT_JOINS = {
+    "customer_name": lambda q: q.outerjoin(Customer, Order.customer_id == Customer.customer_id),
+    "category_name": lambda q: q.outerjoin(OrderItem, Order.order_id == OrderItem.order_id)
+        .outerjoin(Product, OrderItem.product_id == Product.product_id)
+        .outerjoin(ProductCategory, Product.category_id == ProductCategory.category_id),
+    "brand": lambda q: q.outerjoin(OrderItem, Order.order_id == OrderItem.order_id)
+        .outerjoin(Product, OrderItem.product_id == Product.product_id),
 }
 
 
@@ -46,16 +57,16 @@ async def get_orders(
     if date_to is not None:
         base = base.where(Order.order_date <= date_to)
 
-    # Join Customer if sorting by customer_name
-    needs_join = sort_by == "customer_name"
-    if needs_join:
-        base = base.outerjoin(Customer, Order.customer_id == Customer.customer_id)
-
     count_q = select(func.count()).select_from(base.subquery())
     total = (await db.execute(count_q)).scalar() or 0
 
+    # Apply joins needed for sorting
+    if sort_by in SORT_JOINS:
+        base = SORT_JOINS[sort_by](base).group_by(Order.order_id)
+
     col = SORTABLE_COLUMNS.get(sort_by, Order.order_date)
-    order = col.desc() if sort_dir == "desc" else col.asc()
+    sort_expr = func.min(col) if sort_by in ("category_name", "brand") else col
+    order = sort_expr.desc() if sort_dir == "desc" else sort_expr.asc()
 
     offset = (page - 1) * page_size
     query = (
