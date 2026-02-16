@@ -175,37 +175,43 @@ export default function CustomersPage() {
       </Container>
 
       {/* Bulk Actions */}
-      {selectedIds.size > 0 && (
-        <Container className="p-3!">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-(--color-text-base)">
-              {selectedIds.size} selected
-            </span>
-            <div className="flex items-center gap-2">
-              {selectedIds.size === 1 && (
-                <Button variant="secondary" size="sm" onClick={handleEditSelected}>
-                  <Pencil className="w-3.5 h-3.5" />
-                  Edit
+      <div
+        className={`grid transition-all duration-200 ease-out ${
+          selectedIds.size > 0 ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <Container className="p-3!">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-(--color-text-base)">
+                {selectedIds.size} selected
+              </span>
+              <div className="flex items-center gap-2">
+                {selectedIds.size === 1 && (
+                  <Button variant="secondary" size="sm" onClick={handleEditSelected}>
+                    <Pencil className="w-3.5 h-3.5" />
+                    Edit
+                  </Button>
+                )}
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => setDeleteTarget([...selectedIds])}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete ({selectedIds.size})
                 </Button>
-              )}
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => setDeleteTarget([...selectedIds])}
+              </div>
+              <button
+                onClick={() => setSelectedIds(new Set())}
+                className="ml-auto text-xs text-(--color-text-subtle) hover:text-(--color-text-base) cursor-pointer"
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                Delete ({selectedIds.size})
-              </Button>
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <button
-              onClick={() => setSelectedIds(new Set())}
-              className="ml-auto text-xs text-(--color-text-subtle) hover:text-(--color-text-base) cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </Container>
-      )}
+          </Container>
+        </div>
+      </div>
 
       {/* Table */}
       <Container className="p-0!">
