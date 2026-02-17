@@ -3,6 +3,7 @@ const variants = {
   warning: 'bg-amber-50 text-amber-700 ring-amber-600/20',
   danger: 'bg-red-50 text-red-700 ring-red-600/20',
   info: 'bg-blue-50 text-blue-700 ring-blue-600/20',
+  teal: 'bg-teal-50 text-teal-700 ring-teal-600/20',
   neutral: 'bg-gray-50 text-gray-600 ring-gray-500/20',
 }
 

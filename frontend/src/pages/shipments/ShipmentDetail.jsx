@@ -9,7 +9,7 @@ function getStatusBadge(status) {
     case 'shipped':
       return <Badge variant="neutral">Shipped</Badge>
     case 'arrived':
-      return <Badge variant="info">Arrived</Badge>
+      return <Badge variant="teal">Arrived</Badge>
     case 'received':
       return <Badge variant="info">Received</Badge>
     case 'completed':
