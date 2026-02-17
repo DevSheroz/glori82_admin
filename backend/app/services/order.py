@@ -62,7 +62,10 @@ async def get_orders(
 
     # Apply joins needed for sorting
     if sort_by in SORT_JOINS:
-        base = SORT_JOINS[sort_by](base).group_by(Order.order_id)
+        base = SORT_JOINS[sort_by](base)
+        # group_by only needed for one-to-many joins (via order_items)
+        if sort_by in ("category_name", "brand"):
+            base = base.group_by(Order.order_id)
 
     col = SORTABLE_COLUMNS.get(sort_by, Order.order_date)
     sort_expr = func.min(col) if sort_by in ("category_name", "brand") else col
