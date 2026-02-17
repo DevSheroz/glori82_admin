@@ -70,25 +70,28 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
           <table className="w-full text-sm min-w-150">
             <thead>
               <tr className="border-b border-(--color-border-base) bg-(--color-bg-subtle)">
-                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
                   Order #
                 </th>
-                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
                   Customer
                 </th>
-                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
+                  Status
+                </th>
+                <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
                   Items
                 </th>
-                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
                   Selling (USD)
                 </th>
-                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
                   Weight
                 </th>
-                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
                   Cargo ($13/kg)
                 </th>
-                <th className="text-left text-xs font-semibold text-(--color-text-base) uppercase tracking-wider px-3 py-2">
+                <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
                   Total (UZS)
                 </th>
               </tr>
@@ -101,6 +104,9 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
                   </td>
                   <td className="px-3 py-2 text-(--color-text-subtle)">
                     {order.customer_name || '—'}
+                  </td>
+                  <td className="px-3 py-2">
+                    {getStatusBadge(order.status)}
                   </td>
                   <td className="px-3 py-2 text-(--color-text-subtle)">
                     {order.items_summary || '—'}
