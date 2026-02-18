@@ -56,17 +56,20 @@ async def get_sales_over_time(
 ) -> list[SalesOverTime]:
     date_col = cast(Order.order_date, Date)
 
-    # Step 1: per-order total = sum(selling_price × qty) + service_fee, grouped per order
+    # Step 1: per-order total = sum(selling_price × qty) + service_fee + customer cargo ($13/kg)
     per_order = (
         select(
             Order.order_id,
             date_col.label("date"),
             (
-                func.coalesce(func.sum(OrderItem.selling_price * OrderItem.quantity), 0) + Order.service_fee
+                func.coalesce(func.sum(OrderItem.selling_price * OrderItem.quantity), 0)
+                + Order.service_fee
+                + func.coalesce(func.sum(Product.packaged_weight_grams * OrderItem.quantity), 0) / 1000 * 13
             ).label("order_total"),
         )
         .select_from(Order)
         .join(OrderItem, OrderItem.order_id == Order.order_id)
+        .outerjoin(Product, OrderItem.product_id == Product.product_id)
         .where(Order.status == "completed")
         .group_by(Order.order_id, date_col, Order.service_fee)
     )
