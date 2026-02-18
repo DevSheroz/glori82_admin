@@ -22,6 +22,7 @@ class Order(Base):
     payment_status: Mapped[str] = mapped_column(String(20), server_default="unpaid")
     paid_card: Mapped[Decimal] = mapped_column(Numeric(12, 2), server_default="0")
     paid_cash: Mapped[Decimal] = mapped_column(Numeric(12, 2), server_default="0")
+    final_amount_uzs: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
 
     customer: Mapped["Customer | None"] = relationship(back_populates="orders")
     items: Mapped[list["OrderItem"]] = relationship(back_populates="order", cascade="all, delete-orphan")

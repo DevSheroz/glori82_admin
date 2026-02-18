@@ -171,11 +171,18 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
       label: 'Total Price (UZS)',
       minWidth: '140px',
       render: (row) => (
-        <span className="tabular-nums font-medium">
-          {row.total_price_uzs != null
-            ? Number(row.total_price_uzs).toLocaleString()
-            : '—'}
-        </span>
+        row.final_amount_uzs != null ? (
+          <span className="tabular-nums font-medium text-emerald-700 flex items-center gap-1">
+            {Number(row.final_amount_uzs).toLocaleString()}
+            <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded">FINAL</span>
+          </span>
+        ) : (
+          <span className="tabular-nums font-medium">
+            {row.total_price_uzs != null
+              ? Number(row.total_price_uzs).toLocaleString()
+              : '—'}
+          </span>
+        )
       ),
     },
     {

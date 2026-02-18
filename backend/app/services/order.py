@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal, ROUND_HALF_UP
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +12,7 @@ from app.models.product import Product
 from app.models.product_attribute_value import ProductAttributeValue
 from app.models.product_category import ProductCategory
 from app.schemas.order import OrderCreate, OrderUpdate
-from app.services.currency import calculate_prices
+from app.services.currency import calculate_prices, get_rates
 
 
 SORTABLE_COLUMNS = {
@@ -233,6 +234,36 @@ async def _build_order_items(db: AsyncSession, items_data) -> list[OrderItem]:
     return result
 
 
+_PAID_STATUSES = {"paid_card", "paid_cash"}
+
+
+async def _compute_final_amount_uzs(order: Order) -> Decimal | None:
+    """Compute total_price_uzs using live rate and lock it on the order."""
+    try:
+        rates = await get_rates()
+        usd_to_uzs = Decimal(str(rates["usd_to_uzs"]))
+    except Exception:
+        return None
+
+    selling_usd = Decimal(0)
+    total_weight_grams = 0
+    for item in order.items:
+        if item.selling_price:
+            selling_usd += item.selling_price * item.quantity
+        if item.product and item.product.packaged_weight_grams:
+            total_weight_grams += item.product.packaged_weight_grams * item.quantity
+
+    service_fee = order.service_fee if order.service_fee is not None else Decimal("3.00")
+    total_weight_kg = Decimal(total_weight_grams) / Decimal(1000)
+    customer_cargo_usd = total_weight_kg * Decimal(13)
+
+    if not selling_usd:
+        return None
+
+    total_price_usd = selling_usd + service_fee + customer_cargo_usd
+    return (total_price_usd * usd_to_uzs).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
 async def create_order(db: AsyncSession, data: OrderCreate) -> Order:
     customer_id = await _resolve_customer(db, data)
 
@@ -277,6 +308,14 @@ async def update_order(db: AsyncSession, order_id: int, data: OrderUpdate) -> Or
         if new_items or not order.items:
             order.items.clear()
             order.items.extend(new_items)
+
+    # Lock final UZS amount when order is completed and fully paid
+    effective_status = order.status
+    effective_payment = order.payment_status
+    if effective_status == "completed" and effective_payment in _PAID_STATUSES:
+        order.final_amount_uzs = await _compute_final_amount_uzs(order)
+    else:
+        order.final_amount_uzs = None
 
     await db.commit()
     return await get_order(db, order_id)

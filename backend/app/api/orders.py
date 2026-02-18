@@ -120,6 +120,7 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
         "paid_card": paid_card,
         "paid_cash": paid_cash,
         "unpaid": unpaid,
+        "final_amount_uzs": order.final_amount_uzs,
         "customer_name": order.customer.customer_name if order.customer else None,
         "items": items,
     }

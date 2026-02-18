@@ -157,12 +157,16 @@ async def get_unpaid_orders(db: AsyncSession) -> list[UnpaidOrder]:
         total_weight_kg = Decimal(total_weight_grams) / Decimal(1000)
         customer_cargo_usd = total_weight_kg * Decimal(13)
 
-        total_price_uzs = None
-        if selling_usd and customer_cargo_usd and usd_to_uzs:
+        # Use the locked final amount if available, otherwise compute live
+        if order.final_amount_uzs is not None:
+            total_price_uzs = order.final_amount_uzs
+        elif selling_usd and customer_cargo_usd and usd_to_uzs:
             total_price_usd = selling_usd + service_fee + customer_cargo_usd
             total_price_uzs = (total_price_usd * usd_to_uzs).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
+        else:
+            total_price_uzs = None
 
         paid_card = order.paid_card or Decimal(0)
         paid_cash = order.paid_cash or Decimal(0)
