@@ -4,7 +4,15 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.schemas.dashboard import DashboardMetrics, SalesOverTime, TopProduct
+from app.schemas.dashboard import (
+    DashboardMetrics,
+    OrderStatusCount,
+    ProfitSummary,
+    SalesOverTime,
+    ShipmentCost,
+    TopProduct,
+    UnpaidOrder,
+)
 from app.services import dashboard as dashboard_service
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -27,3 +35,23 @@ async def sales_over_time(
 @router.get("/top-products", response_model=list[TopProduct])
 async def top_products(limit: int = 10, db: AsyncSession = Depends(get_db)):
     return await dashboard_service.get_top_products(db, limit=limit)
+
+
+@router.get("/unpaid-orders", response_model=list[UnpaidOrder])
+async def unpaid_orders(db: AsyncSession = Depends(get_db)):
+    return await dashboard_service.get_unpaid_orders(db)
+
+
+@router.get("/shipment-costs", response_model=list[ShipmentCost])
+async def shipment_costs(db: AsyncSession = Depends(get_db)):
+    return await dashboard_service.get_shipment_costs(db)
+
+
+@router.get("/order-status-summary", response_model=list[OrderStatusCount])
+async def order_status_summary(db: AsyncSession = Depends(get_db)):
+    return await dashboard_service.get_order_status_summary(db)
+
+
+@router.get("/profit-summary", response_model=ProfitSummary)
+async def profit_summary(db: AsyncSession = Depends(get_db)):
+    return await dashboard_service.get_profit_summary(db)

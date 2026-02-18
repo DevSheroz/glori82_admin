@@ -75,6 +75,16 @@ export const currencyApi = {
   getRates: (params) => api.get('/currency/rates', { params }),
 }
 
+export const dashboardApi = {
+  getMetrics: () => api.get('/dashboard/metrics'),
+  getSalesOverTime: (params) => api.get('/dashboard/sales-over-time', { params }),
+  getTopProducts: (params) => api.get('/dashboard/top-products', { params }),
+  getUnpaidOrders: () => api.get('/dashboard/unpaid-orders'),
+  getShipmentCosts: () => api.get('/dashboard/shipment-costs'),
+  getOrderStatusSummary: () => api.get('/dashboard/order-status-summary'),
+  getProfitSummary: () => api.get('/dashboard/profit-summary'),
+}
+
 export const shipmentsApi = {
   getAll: (params) => api.get('/shipments', { params }),
   getById: (id) => api.get(`/shipments/${id}`),

@@ -8,16 +8,7 @@ import OrdersPage from './pages/orders/OrdersPage'
 import CustomersPage from './pages/customers/CustomersPage'
 import CategoriesPage from './pages/categories/CategoriesPage'
 import ShipmentsPage from './pages/shipments/ShipmentsPage'
-
-function Placeholder({ title }) {
-  return (
-    <div className="flex items-center justify-center h-64">
-      <p className="text-sm text-(--color-text-muted)">
-        {title} — Coming soon
-      </p>
-    </div>
-  )
-}
+import DashboardPage from './pages/dashboard/DashboardPage'
 
 export default function App() {
   return (
@@ -29,7 +20,7 @@ export default function App() {
             <Route element={<Layout />}>
               <Route index element={<Navigate to="/orders" replace />} />
               <Route path="inventory" element={<InventoryPage />} />
-              <Route path="dashboard" element={<Placeholder title="Dashboard" />} />
+              <Route path="dashboard" element={<DashboardPage />} />
               <Route path="orders" element={<OrdersPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
