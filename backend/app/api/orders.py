@@ -92,7 +92,7 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
     paid_card = order.paid_card or Decimal(0)
     paid_cash = order.paid_cash or Decimal(0)
     total_paid = paid_card + paid_cash
-    unpaid = (total_price_uzs - total_paid).quantize(
+    unpaid = max(Decimal(0), total_price_uzs - total_paid).quantize(
         Decimal("0.01"), rounding=ROUND_HALF_UP
     ) if total_price_uzs else None
 
