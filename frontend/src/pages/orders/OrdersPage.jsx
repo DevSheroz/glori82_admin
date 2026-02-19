@@ -302,11 +302,14 @@ export default function OrdersPage() {
   }
 
   const handleStatusChange = async (orderId, newStatus) => {
+    // Optimistic update — keeps the select at the new value immediately
+    setOrders((prev) => prev.map((o) => o.order_id === orderId ? { ...o, status: newStatus } : o))
     try {
       await ordersApi.update(orderId, { status: newStatus })
-      fetchData(true)
+      fetchData(true) // sync final_amount_uzs and any other computed fields
     } catch (err) {
       console.error('Status update failed:', err)
+      fetchData(true) // revert to server state on error
     }
   }
 
@@ -323,6 +326,8 @@ export default function OrdersPage() {
       return
     }
 
+    // Optimistic update
+    setOrders((prev) => prev.map((o) => o.order_id === orderId ? { ...o, payment_status: newPaymentStatus } : o))
     try {
       const update = { payment_status: newPaymentStatus }
       const total = row?.total_price_uzs ? Number(row.total_price_uzs) : 0
@@ -342,6 +347,7 @@ export default function OrdersPage() {
       fetchData(true)
     } catch (err) {
       console.error('Payment status update failed:', err)
+      fetchData(true) // revert on error
     }
   }
 

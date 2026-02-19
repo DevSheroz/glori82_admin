@@ -284,7 +284,7 @@ async def create_order(db: AsyncSession, data: OrderCreate) -> Order:
 async def update_order(db: AsyncSession, order_id: int, data: OrderUpdate) -> Order | None:
     query = (
         select(Order)
-        .options(selectinload(Order.items))
+        .options(selectinload(Order.items).selectinload(OrderItem.product))
         .where(Order.order_id == order_id)
     )
     result = await db.execute(query)
