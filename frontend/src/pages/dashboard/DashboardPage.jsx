@@ -104,6 +104,8 @@ export default function DashboardPage() {
   const [unpaid, setUnpaid] = useState([])
   const [statusSummary, setStatusSummary] = useState([])
   const [shipmentCosts, setShipmentCosts] = useState([])
+  const [shipmentRevenue, setShipmentRevenue] = useState([])
+  const [monthlyRevenue, setMonthlyRevenue] = useState([])
   const [salesOverTime, setSalesOverTime] = useState([])
   const [topProducts, setTopProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -118,6 +120,8 @@ export default function DashboardPage() {
       unpaidRes,
       statusRes,
       shipCostRes,
+      shipRevRes,
+      monthlyRes,
       salesRes,
       topRes,
     ] = await Promise.allSettled([
@@ -126,11 +130,13 @@ export default function DashboardPage() {
       dashboardApi.getUnpaidOrders(),
       dashboardApi.getOrderStatusSummary(),
       dashboardApi.getShipmentCosts(),
+      dashboardApi.getShipmentRevenue(),
+      dashboardApi.getMonthlyRevenue(),
       dashboardApi.getSalesOverTime(),
       dashboardApi.getTopProducts({ limit: 7 }),
     ])
 
-    const failed = [metricsRes, profitRes, unpaidRes, statusRes, shipCostRes, salesRes, topRes]
+    const failed = [metricsRes, profitRes, unpaidRes, statusRes, shipCostRes, shipRevRes, monthlyRes, salesRes, topRes]
       .filter(r => r.status === 'rejected')
     if (failed.length > 0) {
       setError(failed.map(r => r.reason?.message ?? 'Unknown error').join(' | '))
@@ -141,6 +147,16 @@ export default function DashboardPage() {
     if (unpaidRes.status === 'fulfilled') setUnpaid(unpaidRes.value.data)
     if (statusRes.status === 'fulfilled') setStatusSummary(statusRes.value.data)
     if (shipCostRes.status === 'fulfilled') setShipmentCosts(shipCostRes.value.data)
+    if (shipRevRes.status === 'fulfilled') setShipmentRevenue(shipRevRes.value.data.map(s => ({
+      ...s,
+      revenue_usd: Number(s.revenue_usd),
+      profit_usd: Number(s.profit_usd),
+    })))
+    if (monthlyRes.status === 'fulfilled') setMonthlyRevenue(monthlyRes.value.data.map(m => ({
+      ...m,
+      revenue_usd: Number(m.revenue_usd),
+      profit_usd: Number(m.profit_usd),
+    })))
     if (salesRes.status === 'fulfilled') setSalesOverTime(salesRes.value.data.map(d => ({
       ...d,
       total_sales: Number(d.total_sales),
@@ -360,6 +376,54 @@ export default function DashboardPage() {
         </Section>
       </div>
 
+      {/* Row: Shipment Revenue & Profit */}
+      <Section title="Revenue & Profit per Shipment (USD)">
+        {loading ? (
+          <Skeleton className="h-52 w-full" />
+        ) : shipmentRevenue.length === 0 ? (
+          <div className="flex items-center justify-center h-52 text-(--color-text-muted) text-sm">No shipments</div>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={shipmentRevenue} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-base)" />
+              <XAxis dataKey="shipment_number" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} />
+              <YAxis
+                tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                tickFormatter={v => '$' + v.toFixed(0)}
+                width={55}
+              />
+              <Tooltip content={<ChartTooltip formatter={v => fmtUSD(v)} />} />
+              <Bar dataKey="revenue_usd" name="Revenue" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="profit_usd" name="Profit" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Section>
+
+      {/* Row: Monthly Revenue & Profit */}
+      <Section title="Monthly Revenue & Profit (USD, all orders)">
+        {loading ? (
+          <Skeleton className="h-52 w-full" />
+        ) : monthlyRevenue.length === 0 ? (
+          <div className="flex items-center justify-center h-52 text-(--color-text-muted) text-sm">No data</div>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={monthlyRevenue} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-base)" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} />
+              <YAxis
+                tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                tickFormatter={v => '$' + v.toFixed(0)}
+                width={55}
+              />
+              <Tooltip content={<ChartTooltip formatter={v => fmtUSD(v)} />} />
+              <Bar dataKey="revenue_usd" name="Revenue" fill="#6366f1" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="profit_usd" name="Profit" fill="#22c55e" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Section>
+
       {/* Row: Shipment Cost charts side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -379,9 +443,7 @@ export default function DashboardPage() {
                   tickFormatter={v => '₩' + (v >= 1000000 ? (v / 1000000).toFixed(1) + 'M' : v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v)}
                   width={60}
                 />
-                <Tooltip
-                  content={<ChartTooltip formatter={(v) => fmtKRW(v)} />}
-                />
+                <Tooltip content={<ChartTooltip formatter={(v) => fmtKRW(v)} />} />
                 <Bar dataKey="Product Cost (KRW)" fill="#6366f1" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -404,9 +466,7 @@ export default function DashboardPage() {
                   tickFormatter={v => '$' + v.toFixed(0)}
                   width={50}
                 />
-                <Tooltip
-                  content={<ChartTooltip formatter={(v) => fmtUSD(v)} />}
-                />
+                <Tooltip content={<ChartTooltip formatter={(v) => fmtUSD(v)} />} />
                 <Bar dataKey="Cargo Cost (USD)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>

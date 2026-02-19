@@ -83,6 +83,8 @@ export const dashboardApi = {
   getShipmentCosts: () => api.get('/dashboard/shipment-costs'),
   getOrderStatusSummary: () => api.get('/dashboard/order-status-summary'),
   getProfitSummary: () => api.get('/dashboard/profit-summary'),
+  getShipmentRevenue: () => api.get('/dashboard/shipment-revenue'),
+  getMonthlyRevenue: () => api.get('/dashboard/monthly-revenue'),
 }
 
 export const shipmentsApi = {

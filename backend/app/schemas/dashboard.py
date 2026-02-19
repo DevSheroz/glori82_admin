@@ -51,6 +51,22 @@ class OrderStatusCount(BaseModel):
     count: int
 
 
+class ShipmentRevenue(BaseModel):
+    shipment_id: int
+    shipment_number: str
+    status: str
+    revenue_usd: Decimal
+    profit_usd: Decimal
+    order_count: int
+
+
+class MonthlyRevenue(BaseModel):
+    month: str  # "2026-02" format
+    revenue_usd: Decimal
+    profit_usd: Decimal
+    order_count: int
+
+
 class ProfitSummary(BaseModel):
     total_selling_usd: Decimal
     total_service_fee_usd: Decimal

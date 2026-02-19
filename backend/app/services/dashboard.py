@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 
-from sqlalchemy import cast, Date, func, select
+from sqlalchemy import cast, Date, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -11,10 +11,12 @@ from app.models.product import Product
 from app.models.shipment import Shipment, ShipmentOrder
 from app.schemas.dashboard import (
     DashboardMetrics,
+    MonthlyRevenue,
     OrderStatusCount,
     ProfitSummary,
     SalesOverTime,
     ShipmentCost,
+    ShipmentRevenue,
     TopProduct,
     UnpaidOrder,
 )
@@ -321,3 +323,136 @@ async def get_profit_summary(db: AsyncSession) -> ProfitSummary:
         total_unpaid_uzs=Decimal(str(total_unpaid_uzs)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP),
         total_orders=total_orders,
     )
+
+
+async def get_shipment_revenue(db: AsyncSession) -> list[ShipmentRevenue]:
+    """Per-shipment revenue and profit."""
+    query = (
+        select(Shipment)
+        .options(
+            selectinload(Shipment.shipment_orders)
+            .selectinload(ShipmentOrder.order)
+            .selectinload(Order.items)
+            .selectinload(OrderItem.product),
+        )
+        .order_by(Shipment.created_at.asc())
+    )
+    result = await db.execute(query)
+    shipments = list(result.scalars().all())
+
+    krw_to_usd = Decimal(0)
+    try:
+        rates = await get_rates()
+        krw_to_usd = Decimal(str(rates["krw_to_usd"]))
+    except Exception:
+        pass
+
+    items_list: list[ShipmentRevenue] = []
+    for shipment in shipments:
+        selling_usd = Decimal(0)
+        service_fee_usd = Decimal(0)
+        product_cost_krw = Decimal(0)
+        total_weight_grams = 0
+        order_ids: set[int] = set()
+
+        for so in shipment.shipment_orders:
+            order = so.order
+            order_ids.add(order.order_id)
+            service_fee_usd += order.service_fee if order.service_fee is not None else Decimal("3.00")
+            for item in order.items:
+                if item.selling_price:
+                    selling_usd += item.selling_price * item.quantity
+                if item.cost_price:
+                    product_cost_krw += item.cost_price * item.quantity
+                if item.product and item.product.packaged_weight_grams:
+                    total_weight_grams += item.product.packaged_weight_grams * item.quantity
+
+        total_weight_kg = Decimal(total_weight_grams) / Decimal(1000)
+        customer_cargo_usd = total_weight_kg * Decimal(13)
+        business_cargo_usd = total_weight_kg * Decimal(12)
+
+        revenue_usd = (selling_usd + service_fee_usd + customer_cargo_usd).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        product_cost_usd = (product_cost_krw * krw_to_usd).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        ) if krw_to_usd else Decimal(0)
+        profit_usd = (revenue_usd - product_cost_usd - business_cargo_usd).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+
+        items_list.append(ShipmentRevenue(
+            shipment_id=shipment.shipment_id,
+            shipment_number=shipment.shipment_number,
+            status=shipment.status,
+            revenue_usd=revenue_usd,
+            profit_usd=profit_usd,
+            order_count=len(order_ids),
+        ))
+
+    return items_list
+
+
+async def get_monthly_revenue(db: AsyncSession) -> list[MonthlyRevenue]:
+    """Per-month revenue and profit across all orders."""
+    # Step 1: per-order totals grouped by order (to avoid service_fee fan-out)
+    month_col = func.to_char(Order.order_date, "YYYY-MM")
+    per_order = (
+        select(
+            Order.order_id,
+            month_col.label("month"),
+            (
+                func.coalesce(func.sum(OrderItem.selling_price * OrderItem.quantity), 0)
+                + Order.service_fee
+                + func.coalesce(func.sum(Product.packaged_weight_grams * OrderItem.quantity), 0) / 1000 * 13
+            ).label("revenue"),
+            func.coalesce(func.sum(OrderItem.cost_price * OrderItem.quantity), 0).label("cost_krw"),
+            (func.coalesce(func.sum(Product.packaged_weight_grams * OrderItem.quantity), 0) / 1000 * 12).label("business_cargo"),
+        )
+        .select_from(Order)
+        .join(OrderItem, OrderItem.order_id == Order.order_id)
+        .outerjoin(Product, OrderItem.product_id == Product.product_id)
+        .group_by(Order.order_id, month_col, Order.service_fee)
+    ).subquery()
+
+    # Step 2: aggregate by month
+    query = (
+        select(
+            per_order.c.month,
+            func.sum(per_order.c.revenue).label("revenue"),
+            func.sum(per_order.c.cost_krw).label("cost_krw"),
+            func.sum(per_order.c.business_cargo).label("business_cargo"),
+            func.count(per_order.c.order_id).label("order_count"),
+        )
+        .group_by(per_order.c.month)
+        .order_by(per_order.c.month)
+    )
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    krw_to_usd = Decimal(0)
+    try:
+        rates = await get_rates()
+        krw_to_usd = Decimal(str(rates["krw_to_usd"]))
+    except Exception:
+        pass
+
+    monthly: list[MonthlyRevenue] = []
+    for row in rows:
+        revenue_usd = Decimal(str(row.revenue)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        product_cost_usd = (Decimal(str(row.cost_krw)) * krw_to_usd).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        ) if krw_to_usd else Decimal(0)
+        business_cargo_usd = Decimal(str(row.business_cargo)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        profit_usd = (revenue_usd - product_cost_usd - business_cargo_usd).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        monthly.append(MonthlyRevenue(
+            month=row.month,
+            revenue_usd=revenue_usd,
+            profit_usd=profit_usd,
+            order_count=row.order_count,
+        ))
+
+    return monthly

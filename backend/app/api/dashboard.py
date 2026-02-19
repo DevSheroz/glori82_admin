@@ -6,10 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.schemas.dashboard import (
     DashboardMetrics,
+    MonthlyRevenue,
     OrderStatusCount,
     ProfitSummary,
     SalesOverTime,
     ShipmentCost,
+    ShipmentRevenue,
     TopProduct,
     UnpaidOrder,
 )
@@ -55,3 +57,13 @@ async def order_status_summary(db: AsyncSession = Depends(get_db)):
 @router.get("/profit-summary", response_model=ProfitSummary)
 async def profit_summary(db: AsyncSession = Depends(get_db)):
     return await dashboard_service.get_profit_summary(db)
+
+
+@router.get("/shipment-revenue", response_model=list[ShipmentRevenue])
+async def shipment_revenue(db: AsyncSession = Depends(get_db)):
+    return await dashboard_service.get_shipment_revenue(db)
+
+
+@router.get("/monthly-revenue", response_model=list[MonthlyRevenue])
+async def monthly_revenue(db: AsyncSession = Depends(get_db)):
+    return await dashboard_service.get_monthly_revenue(db)
