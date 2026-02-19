@@ -237,29 +237,45 @@ async def _build_order_items(db: AsyncSession, items_data) -> list[OrderItem]:
 _PAID_STATUSES = {"paid_card", "paid_cash"}
 
 
-async def _compute_final_amount_uzs(order: Order) -> Decimal | None:
-    """Compute total_price_uzs using live rate and lock it on the order."""
+async def _compute_final_amount_uzs(order: Order, db: AsyncSession) -> Decimal | None:
+    """Compute total_price_uzs using live rate and lock it on the order.
+
+    Uses an explicit async query for product weights to avoid triggering
+    SQLAlchemy lazy loads (which crash in async context with MissingGreenlet).
+    """
     try:
         rates = await get_rates()
         usd_to_uzs = Decimal(str(rates["usd_to_uzs"]))
     except Exception:
         return None
 
+    # Fetch product weights with a proper async query — never touch item.product
+    product_ids = [item.product_id for item in order.items if item.product_id]
+    weight_by_product: dict[int, int] = {}
+    if product_ids:
+        result = await db.execute(
+            select(Product.product_id, Product.packaged_weight_grams)
+            .where(Product.product_id.in_(product_ids))
+        )
+        weight_by_product = {
+            row.product_id: (row.packaged_weight_grams or 0)
+            for row in result
+        }
+
     selling_usd = Decimal(0)
     total_weight_grams = 0
     for item in order.items:
         if item.selling_price:
             selling_usd += item.selling_price * item.quantity
-        if item.product and item.product.packaged_weight_grams:
-            total_weight_grams += item.product.packaged_weight_grams * item.quantity
-
-    service_fee = order.service_fee if order.service_fee is not None else Decimal("3.00")
-    total_weight_kg = Decimal(total_weight_grams) / Decimal(1000)
-    customer_cargo_usd = total_weight_kg * Decimal(13)
+        if item.product_id:
+            total_weight_grams += weight_by_product.get(item.product_id, 0) * item.quantity
 
     if not selling_usd:
         return None
 
+    service_fee = order.service_fee if order.service_fee is not None else Decimal("3.00")
+    total_weight_kg = Decimal(total_weight_grams) / Decimal(1000)
+    customer_cargo_usd = total_weight_kg * Decimal(13)
     total_price_usd = selling_usd + service_fee + customer_cargo_usd
     return (total_price_usd * usd_to_uzs).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
@@ -313,7 +329,7 @@ async def update_order(db: AsyncSession, order_id: int, data: OrderUpdate) -> Or
     effective_status = order.status
     effective_payment = order.payment_status
     if effective_status == "completed" and effective_payment in _PAID_STATUSES:
-        order.final_amount_uzs = await _compute_final_amount_uzs(order)
+        order.final_amount_uzs = await _compute_final_amount_uzs(order, db)
     else:
         order.final_amount_uzs = None
 
