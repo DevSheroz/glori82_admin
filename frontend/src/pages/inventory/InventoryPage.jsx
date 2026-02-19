@@ -11,6 +11,127 @@ import { productsApi, categoriesApi, currencyApi } from '../../lib/api'
 
 const PAGE_SIZE = 20
 
+function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, onEdit, onDelete }) {
+  const attrs = product.attribute_values ?? []
+  const attrText = attrs.map((a) => `${a.attribute_name}: ${a.value}`).join(', ')
+  const cat = categories.find((c) => c.category_id === product.category_id)
+
+  let totalUzs = null
+  if (product.selling_price != null && product.packaged_weight_grams != null && usdToUzs) {
+    const customerCargo = (product.packaged_weight_grams / 1000) * 13
+    totalUzs = Math.round((Number(product.selling_price) + 3 + customerCargo) * usdToUzs)
+  }
+
+  const weightKg = product.packaged_weight_grams != null ? (product.packaged_weight_grams / 1000).toFixed(2) : null
+  const cargo = product.packaged_weight_grams != null ? ((product.packaged_weight_grams / 1000) * 12).toFixed(2) : null
+
+  let stockBadgeClass = 'text-green-700 bg-green-50 ring-1 ring-green-200'
+  let stockLabel = 'In Stock'
+  if (product.stock_status === 'out_of_stock') {
+    stockBadgeClass = 'text-red-600 bg-red-50 ring-1 ring-red-200'
+    stockLabel = 'Out of Stock'
+  } else if (product.stock_status === 'pre_order') {
+    stockBadgeClass = 'text-amber-600 bg-amber-50 ring-1 ring-amber-200'
+    stockLabel = 'Pre-order'
+  }
+
+  return (
+    <div className={`p-4 space-y-3 transition-colors ${selected ? 'bg-blue-50/40' : ''}`}>
+      {/* Row 1: checkbox + name + stock badge */}
+      <div className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(product.product_id)}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-0.5 rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <span className="font-semibold text-(--color-text-base) leading-snug">{product.product_name}</span>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${stockBadgeClass}`}>
+              {stockLabel}
+            </span>
+          </div>
+          {attrText && (
+            <div className="text-xs text-(--color-text-muted) mt-0.5">{attrText}</div>
+          )}
+          {!attrText && product.description && (
+            <div className="text-xs text-(--color-text-muted) mt-0.5 truncate">{product.description}</div>
+          )}
+          <div className="text-xs text-(--color-text-subtle) mt-1 flex items-center gap-1.5">
+            {product.brand && <span>{product.brand}</span>}
+            {product.brand && cat && <span className="opacity-30">·</span>}
+            {cat && <span>{cat.category_name}</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: prices */}
+      <div className="ml-7 grid grid-cols-3 gap-2">
+        <div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">Cost (KRW)</div>
+          <span className="tabular-nums text-sm font-medium">
+            {product.cost_price != null ? Number(product.cost_price).toLocaleString() : '—'}
+          </span>
+        </div>
+        <div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">Selling (USD)</div>
+          <span className="tabular-nums text-sm font-medium">
+            {product.selling_price != null ? `$${Number(product.selling_price).toFixed(2)}` : '—'}
+          </span>
+        </div>
+        <div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">Total (UZS)</div>
+          <span className="tabular-nums text-sm font-medium">
+            {totalUzs != null ? totalUzs.toLocaleString() : '—'}
+          </span>
+        </div>
+      </div>
+
+      {/* Row 3: weight / cargo / stock qty / times ordered */}
+      <div className="ml-7 flex items-center gap-4 text-sm">
+        {weightKg && (
+          <div>
+            <div className="text-xs text-(--color-text-muted) mb-0.5">Weight</div>
+            <span className="tabular-nums">{weightKg} kg</span>
+          </div>
+        )}
+        {cargo && (
+          <div>
+            <div className="text-xs text-(--color-text-muted) mb-0.5">Cargo</div>
+            <span className="tabular-nums">${cargo}</span>
+          </div>
+        )}
+        <div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">Stock</div>
+          <span className="tabular-nums">{product.stock_quantity}</span>
+        </div>
+        <div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">Ordered</div>
+          <span className="tabular-nums">{product.times_ordered ?? 0}</span>
+        </div>
+      </div>
+
+      {/* Row 4: actions */}
+      <div className="ml-7 flex justify-end gap-1">
+        <button
+          onClick={onEdit}
+          className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-(--color-text-base) hover:bg-(--color-bg-component) transition-colors"
+        >
+          <Pencil className="w-3.5 h-3.5" />
+        </button>
+        <button
+          onClick={onDelete}
+          className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function InventoryPage() {
   const [products, setProducts] = useState([])
   const [total, setTotal] = useState(0)
@@ -295,7 +416,36 @@ export default function InventoryPage() {
           />
         ) : (
           <>
-            <Table columns={columns} data={products} />
+            {/* Mobile card list */}
+            <div className="sm:hidden divide-y divide-(--color-border-base) max-h-[calc(100vh-220px)] overflow-y-auto">
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-(--color-bg-subtle) border-b border-(--color-border-base)">
+                <input
+                  type="checkbox"
+                  checked={products.length > 0 && selectedIds.size === products.length}
+                  onChange={toggleAll}
+                  className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+                />
+                <span className="text-xs text-(--color-text-subtle)">Select all</span>
+              </div>
+              {products.map((product) => (
+                <ProductCard
+                  key={product.product_id}
+                  product={product}
+                  categories={categories}
+                  usdToUzs={usdToUzs}
+                  selected={selectedIds.has(product.product_id)}
+                  onToggleSelect={toggleSelect}
+                  onEdit={() => { setEditingProduct(product); setModalOpen(true) }}
+                  onDelete={() => setDeleteTarget([product.product_id])}
+                />
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block">
+              <Table columns={columns} data={products} />
+            </div>
+
             <Pagination
               page={page}
               pageSize={PAGE_SIZE}

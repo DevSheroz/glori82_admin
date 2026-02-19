@@ -12,6 +12,119 @@ import { shipmentsApi, ordersApi } from '../../lib/api'
 
 const PAGE_SIZE = 20
 
+const cardStatusColors = {
+  pending: 'text-amber-600 bg-amber-50 ring-amber-200',
+  shipped: 'text-gray-600 bg-gray-50 ring-gray-200',
+  arrived: 'text-teal-600 bg-teal-50 ring-teal-200',
+  received: 'text-blue-600 bg-blue-50 ring-blue-200',
+  completed: 'text-green-600 bg-green-50 ring-green-200',
+}
+
+const cardStatusOptions = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'shipped', label: 'Shipped' },
+  { value: 'arrived', label: 'Arrived' },
+  { value: 'received', label: 'Received' },
+  { value: 'completed', label: 'Completed' },
+]
+
+const chevronSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`
+
+function ShipmentCard({ shipment, selected, onToggleSelect, onViewDetail, onEdit, onDelete, onStatusChange }) {
+  return (
+    <div className={`p-4 space-y-3 transition-colors ${selected ? 'bg-blue-50/40' : ''}`}>
+      {/* Row 1: checkbox + shipment # (tappable) + date */}
+      <div className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(shipment.shipment_id)}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-0.5 rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={onViewDetail}
+              className="font-semibold text-(--color-primary) hover:underline cursor-pointer"
+            >
+              {shipment.shipment_number}
+            </button>
+            <span className="text-xs text-(--color-text-subtle) tabular-nums shrink-0">
+              {shipment.created_at
+                ? new Date(shipment.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : '—'}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 mt-1.5 text-xs text-(--color-text-subtle)">
+            <span>{shipment.order_count} order{shipment.order_count !== 1 ? 's' : ''}</span>
+            <span className="opacity-30">·</span>
+            <span>{shipment.customer_count} customer{shipment.customer_count !== 1 ? 's' : ''}</span>
+            <span className="opacity-30">·</span>
+            <span>{Number(shipment.total_weight_kg).toFixed(2)} kg</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 2: amounts */}
+      <div className="ml-7 grid grid-cols-3 gap-2">
+        <div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">Orders (UZS)</div>
+          <span className="tabular-nums text-sm font-medium">
+            {Number(shipment.total_orders_uzs).toLocaleString()}
+          </span>
+        </div>
+        <div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">Fee ($)</div>
+          <span className="tabular-nums text-sm font-medium">
+            ${Number(shipment.shipment_fee).toFixed(2)}
+          </span>
+        </div>
+        <div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">Grand Total</div>
+          <span className="tabular-nums text-sm font-semibold">
+            {Number(shipment.grand_total_uzs).toLocaleString()}
+          </span>
+        </div>
+      </div>
+
+      {/* Row 3: status dropdown + edit/delete */}
+      <div className="ml-7 flex items-center gap-2">
+        <select
+          value={shipment.status}
+          onChange={(e) => {
+            e.stopPropagation()
+            if (e.target.value !== shipment.status) onStatusChange(shipment.shipment_id, e.target.value)
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${cardStatusColors[shipment.status] || ''}`}
+          style={{ backgroundImage: chevronSvg }}
+        >
+          {cardStatusOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            onClick={onEdit}
+            className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-(--color-text-base) hover:bg-(--color-bg-component) transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ShipmentsPage() {
   const [shipments, setShipments] = useState([])
   const [total, setTotal] = useState(0)
@@ -283,7 +396,36 @@ export default function ShipmentsPage() {
           />
         ) : (
           <>
-            <Table columns={columns} data={shipments} />
+            {/* Mobile card list */}
+            <div className="sm:hidden divide-y divide-(--color-border-base) max-h-[calc(100vh-220px)] overflow-y-auto">
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-(--color-bg-subtle) border-b border-(--color-border-base)">
+                <input
+                  type="checkbox"
+                  checked={shipments.length > 0 && selectedIds.size === shipments.length}
+                  onChange={toggleAll}
+                  className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+                />
+                <span className="text-xs text-(--color-text-subtle)">Select all</span>
+              </div>
+              {shipments.map((shipment) => (
+                <ShipmentCard
+                  key={shipment.shipment_id}
+                  shipment={shipment}
+                  selected={selectedIds.has(shipment.shipment_id)}
+                  onToggleSelect={toggleSelect}
+                  onViewDetail={() => handleRowClick(shipment)}
+                  onEdit={() => { setEditingShipment(shipment); setModalOpen(true) }}
+                  onDelete={() => setDeleteTarget([shipment.shipment_id])}
+                  onStatusChange={handleStatusChange}
+                />
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block">
+              <Table columns={columns} data={shipments} />
+            </div>
+
             <Pagination
               page={page}
               pageSize={PAGE_SIZE}

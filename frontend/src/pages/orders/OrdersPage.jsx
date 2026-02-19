@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, ShoppingCart, Pencil, Trash2, X } from 'lucide-react'
+import { Plus, ShoppingCart, Pencil, Trash2, X, Package } from 'lucide-react'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
 import Table from '../../components/Table'
@@ -11,6 +11,173 @@ import { getColumns } from './columns'
 import { ordersApi, customersApi, productsApi, categoriesApi } from '../../lib/api'
 
 const PAGE_SIZE = 20
+
+// Color maps (mirrored from columns.jsx for the mobile card view)
+const cardStatusColors = {
+  pending: 'text-amber-600 bg-amber-50 ring-amber-200',
+  shipped: 'text-gray-600 bg-gray-50 ring-gray-200',
+  arrived: 'text-teal-600 bg-teal-50 ring-teal-200',
+  received: 'text-blue-600 bg-blue-50 ring-blue-200',
+  completed: 'text-green-600 bg-green-50 ring-green-200',
+}
+
+const cardPaymentColors = {
+  unpaid: 'text-red-600 bg-red-50 ring-red-200',
+  paid_card: 'text-green-600 bg-green-50 ring-green-200',
+  paid_cash: 'text-green-600 bg-green-50 ring-green-200',
+  partial: 'text-amber-600 bg-amber-50 ring-amber-200',
+  prepayment: 'text-purple-600 bg-purple-50 ring-purple-200',
+}
+
+const cardStatusOptions = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'shipped', label: 'Shipped' },
+  { value: 'arrived', label: 'Arrived' },
+  { value: 'received', label: 'Received' },
+  { value: 'completed', label: 'Completed' },
+]
+
+const cardPaymentOptions = [
+  { value: 'unpaid', label: 'Unpaid' },
+  { value: 'paid_card', label: 'Paid (Card)' },
+  { value: 'paid_cash', label: 'Paid (Cash)' },
+  { value: 'partial', label: 'Partial' },
+  { value: 'prepayment', label: 'Prepayment' },
+]
+
+const chevronSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`
+
+function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onStatusChange, onPaymentStatusChange }) {
+  return (
+    <div className={`p-4 space-y-3 transition-colors ${selected ? 'bg-blue-50/40' : ''}`}>
+      {/* Row 1: checkbox + order # + date */}
+      <div className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={() => onToggleSelect(order.order_id)}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-0.5 rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-semibold text-(--color-text-base)">{order.order_number}</span>
+            <span className="text-xs text-(--color-text-subtle) tabular-nums shrink-0">
+              {order.order_date
+                ? new Date(order.order_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                : '—'}
+            </span>
+          </div>
+          <div className="text-sm text-(--color-text-subtle) mt-0.5">{order.customer_name || 'TBA'}</div>
+          {order.shipping_number && (
+            <div className="text-xs text-(--color-text-muted) mt-0.5 flex items-center gap-1">
+              <Package className="w-3 h-3" />
+              {order.shipping_number}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Row 2: products */}
+      {order.items && order.items.length > 0 && (
+        <div className="ml-7 space-y-1">
+          {order.items.map((it, i) => {
+            const inStock = it.stock_status && it.stock_status !== 'pre_order'
+            return (
+              <div
+                key={it.item_id ?? i}
+                className={`flex items-start justify-between gap-2 text-sm ${
+                  inStock ? 'bg-emerald-50 ring-1 ring-emerald-200 rounded px-1.5 py-0.5 -mx-1.5' : ''
+                }`}
+              >
+                <span className="text-(--color-text-base)">
+                  {it.product_name}
+                  {it.product_attributes && (
+                    <span className="text-(--color-text-muted) text-xs ml-1">({it.product_attributes})</span>
+                  )}
+                </span>
+                <span className="text-(--color-text-muted) tabular-nums shrink-0">x{it.quantity}</span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Row 3: amounts */}
+      <div className="ml-7 flex items-center gap-5">
+        <div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">Total (UZS)</div>
+          {order.final_amount_uzs != null ? (
+            <span className="tabular-nums font-semibold text-emerald-700 flex items-center gap-1 text-sm">
+              {Number(order.final_amount_uzs).toLocaleString()}
+              <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded">FINAL</span>
+            </span>
+          ) : (
+            <span className="tabular-nums font-semibold text-sm">
+              {order.total_price_uzs != null ? Number(order.total_price_uzs).toLocaleString() : '—'}
+            </span>
+          )}
+        </div>
+        {order.unpaid != null && Number(order.unpaid) > 0 && (
+          <div>
+            <div className="text-xs text-(--color-text-muted) mb-0.5">Unpaid</div>
+            <span className="tabular-nums font-semibold text-red-600 text-sm">
+              {Number(order.unpaid).toLocaleString()} UZS
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Row 4: status/payment dropdowns + edit/delete */}
+      <div className="ml-7 flex items-center gap-2 flex-wrap">
+        <select
+          value={order.status}
+          onChange={(e) => {
+            e.stopPropagation()
+            if (e.target.value !== order.status) onStatusChange(order.order_id, e.target.value)
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${cardStatusColors[order.status] || ''}`}
+          style={{ backgroundImage: chevronSvg }}
+        >
+          {cardStatusOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+
+        <select
+          value={order.payment_status || 'unpaid'}
+          onChange={(e) => {
+            e.stopPropagation()
+            if (e.target.value !== order.payment_status) onPaymentStatusChange(order.order_id, e.target.value, order)
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${cardPaymentColors[order.payment_status] || cardPaymentColors.unpaid}`}
+          style={{ backgroundImage: chevronSvg }}
+        >
+          {cardPaymentOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+
+        <div className="ml-auto flex items-center gap-1">
+          <button
+            onClick={onEdit}
+            className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-(--color-text-base) hover:bg-(--color-bg-component) transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([])
@@ -379,7 +546,36 @@ export default function OrdersPage() {
           />
         ) : (
           <>
-            <Table columns={columns} data={orders} />
+            {/* Mobile card list */}
+            <div className="sm:hidden divide-y divide-(--color-border-base) max-h-[calc(100vh-220px)] overflow-y-auto">
+              <div className="flex items-center gap-3 px-4 py-2.5 bg-(--color-bg-subtle) border-b border-(--color-border-base)">
+                <input
+                  type="checkbox"
+                  checked={orders.length > 0 && selectedIds.size === orders.length}
+                  onChange={toggleAll}
+                  className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+                />
+                <span className="text-xs text-(--color-text-subtle)">Select all</span>
+              </div>
+              {orders.map((order) => (
+                <OrderCard
+                  key={order.order_id}
+                  order={order}
+                  selected={selectedIds.has(order.order_id)}
+                  onToggleSelect={toggleSelect}
+                  onEdit={() => { setEditingOrder(order); setModalOpen(true) }}
+                  onDelete={() => setDeleteTarget([order.order_id])}
+                  onStatusChange={handleStatusChange}
+                  onPaymentStatusChange={handlePaymentStatusChange}
+                />
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block">
+              <Table columns={columns} data={orders} />
+            </div>
+
             <Pagination
               page={page}
               pageSize={PAGE_SIZE}
