@@ -40,18 +40,18 @@ function KpiCard({ icon: Icon, label, value, sub, color = 'indigo', loading }) {
     sky: 'bg-sky-50 text-sky-600',
   }
   return (
-    <div className="bg-white rounded-xl border border-(--color-border-base) p-5 flex items-start gap-4">
-      <div className={`p-2.5 rounded-lg shrink-0 ${colors[color]}`}>
-        <Icon className="w-5 h-5" strokeWidth={2} />
+    <div className="bg-white rounded-xl border border-(--color-border-base) p-3 sm:p-5 flex flex-col sm:flex-row items-start gap-2 sm:gap-4">
+      <div className={`p-2 rounded-lg shrink-0 ${colors[color]}`}>
+        <Icon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={2} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-(--color-text-muted) uppercase tracking-wide mb-1">{label}</p>
+        <p className="text-[10px] sm:text-xs font-medium text-(--color-text-muted) uppercase tracking-wide mb-0.5 sm:mb-1">{label}</p>
         {loading
-          ? <Skeleton className="h-6 w-28 mb-1" />
-          : <p className="text-xl font-semibold text-(--color-text-base) truncate">{value}</p>
+          ? <Skeleton className="h-5 w-20 sm:h-6 sm:w-28 mb-1" />
+          : <p className="text-base sm:text-xl font-semibold text-(--color-text-base) truncate">{value}</p>
         }
         {sub && !loading && (
-          <p className="text-xs text-(--color-text-muted) mt-0.5">{sub}</p>
+          <p className="text-[10px] sm:text-xs text-(--color-text-muted) mt-0.5">{sub}</p>
         )}
       </div>
     </div>
