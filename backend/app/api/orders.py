@@ -89,6 +89,10 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
 
+    # Use the locked final amount if available (set when order is completed + paid)
+    if order.final_amount_uzs is not None:
+        total_price_uzs = order.final_amount_uzs
+
     paid_card = order.paid_card or Decimal(0)
     paid_cash = order.paid_cash or Decimal(0)
     total_paid = paid_card + paid_cash
