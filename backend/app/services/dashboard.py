@@ -137,6 +137,7 @@ async def get_unpaid_orders(db: AsyncSession) -> list[UnpaidOrder]:
     query = (
         select(Order)
         .where(Order.payment_status.not_in(["paid_card", "paid_cash"]))
+        .where(Order.status != "pending")
         .options(
             selectinload(Order.items).selectinload(OrderItem.product),
             selectinload(Order.customer),
