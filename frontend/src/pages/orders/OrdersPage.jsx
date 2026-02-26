@@ -124,6 +124,13 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onStatus
             <span className="tabular-nums font-semibold text-red-600 text-sm">
               {Number(order.unpaid).toLocaleString()} UZS
             </span>
+            {Number(order.budget_applied_uzs) > 0 && (
+              <div className="mt-0.5">
+                <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 ring-1 ring-emerald-200 rounded px-1.5 py-0.5">
+                  budget −{Math.round(Number(order.budget_applied_uzs)).toLocaleString()}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>
