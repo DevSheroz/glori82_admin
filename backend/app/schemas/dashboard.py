@@ -20,6 +20,13 @@ class SalesOverTime(BaseModel):
 class TopProduct(BaseModel):
     product_id: int
     product_name: str
+    brand: str | None = None
+    total_quantity: int
+    total_revenue: Decimal
+
+
+class TopBrand(BaseModel):
+    brand: str
     total_quantity: int
     total_revenue: Decimal
 

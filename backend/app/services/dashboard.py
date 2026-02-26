@@ -17,6 +17,7 @@ from app.schemas.dashboard import (
     SalesOverTime,
     ShipmentCost,
     ShipmentRevenue,
+    TopBrand,
     TopProduct,
     UnpaidOrder,
 )
@@ -102,13 +103,14 @@ async def get_top_products(db: AsyncSession, limit: int = 10) -> list[TopProduct
         select(
             OrderItem.product_id,
             Product.product_name,
+            Product.brand,
             func.sum(OrderItem.quantity).label("total_quantity"),
             func.coalesce(func.sum(OrderItem.selling_price * OrderItem.quantity), 0).label("total_revenue"),
         )
         .join(Product, OrderItem.product_id == Product.product_id)
         .join(Order, OrderItem.order_id == Order.order_id)
         .where(Order.status == "completed")
-        .group_by(OrderItem.product_id, Product.product_name)
+        .group_by(OrderItem.product_id, Product.product_name, Product.brand)
         .order_by(func.sum(OrderItem.selling_price * OrderItem.quantity).desc())
         .limit(limit)
     )
@@ -117,6 +119,34 @@ async def get_top_products(db: AsyncSession, limit: int = 10) -> list[TopProduct
         TopProduct(
             product_id=row.product_id,
             product_name=row.product_name,
+            brand=row.brand,
+            total_quantity=row.total_quantity,
+            total_revenue=row.total_revenue,
+        )
+        for row in result.all()
+    ]
+
+
+async def get_top_brands(db: AsyncSession, limit: int = 10) -> list[TopBrand]:
+    query = (
+        select(
+            Product.brand,
+            func.sum(OrderItem.quantity).label("total_quantity"),
+            func.coalesce(func.sum(OrderItem.selling_price * OrderItem.quantity), 0).label("total_revenue"),
+        )
+        .join(Product, OrderItem.product_id == Product.product_id)
+        .join(Order, OrderItem.order_id == Order.order_id)
+        .where(Order.status == "completed")
+        .where(Product.brand.isnot(None))
+        .where(Product.brand != "")
+        .group_by(Product.brand)
+        .order_by(func.sum(OrderItem.selling_price * OrderItem.quantity).desc())
+        .limit(limit)
+    )
+    result = await db.execute(query)
+    return [
+        TopBrand(
+            brand=row.brand,
             total_quantity=row.total_quantity,
             total_revenue=row.total_revenue,
         )

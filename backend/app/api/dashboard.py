@@ -12,6 +12,7 @@ from app.schemas.dashboard import (
     SalesOverTime,
     ShipmentCost,
     ShipmentRevenue,
+    TopBrand,
     TopProduct,
     UnpaidOrder,
 )
@@ -37,6 +38,11 @@ async def sales_over_time(
 @router.get("/top-products", response_model=list[TopProduct])
 async def top_products(limit: int = 10, db: AsyncSession = Depends(get_db)):
     return await dashboard_service.get_top_products(db, limit=limit)
+
+
+@router.get("/top-brands", response_model=list[TopBrand])
+async def top_brands(limit: int = 10, db: AsyncSession = Depends(get_db)):
+    return await dashboard_service.get_top_brands(db, limit=limit)
 
 
 @router.get("/unpaid-orders", response_model=list[UnpaidOrder])

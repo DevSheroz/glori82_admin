@@ -108,6 +108,7 @@ export default function DashboardPage() {
   const [monthlyRevenue, setMonthlyRevenue] = useState([])
   const [salesOverTime, setSalesOverTime] = useState([])
   const [topProducts, setTopProducts] = useState([])
+  const [topBrands, setTopBrands] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -124,6 +125,7 @@ export default function DashboardPage() {
       monthlyRes,
       salesRes,
       topRes,
+      topBrandsRes,
     ] = await Promise.allSettled([
       dashboardApi.getMetrics(),
       dashboardApi.getProfitSummary(),
@@ -134,9 +136,10 @@ export default function DashboardPage() {
       dashboardApi.getMonthlyRevenue(),
       dashboardApi.getSalesOverTime(),
       dashboardApi.getTopProducts({ limit: 7 }),
+      dashboardApi.getTopBrands({ limit: 7 }),
     ])
 
-    const failed = [metricsRes, profitRes, unpaidRes, statusRes, shipCostRes, shipRevRes, monthlyRes, salesRes, topRes]
+    const failed = [metricsRes, profitRes, unpaidRes, statusRes, shipCostRes, shipRevRes, monthlyRes, salesRes, topRes, topBrandsRes]
       .filter(r => r.status === 'rejected')
     if (failed.length > 0) {
       setError(failed.map(r => r.reason?.message ?? 'Unknown error').join(' | '))
@@ -164,6 +167,10 @@ export default function DashboardPage() {
     if (topRes.status === 'fulfilled') setTopProducts(topRes.value.data.map(p => ({
       ...p,
       total_revenue: Number(p.total_revenue),
+    })))
+    if (topBrandsRes.status === 'fulfilled') setTopBrands(topBrandsRes.value.data.map(b => ({
+      ...b,
+      total_revenue: Number(b.total_revenue),
     })))
 
     setLoading(false)
@@ -221,7 +228,15 @@ export default function DashboardPage() {
   // ── Top products horizontal bars ─────────────────────────────────────────
   const topProductsData = topProducts.map(p => ({
     name: p.product_name.length > 20 ? p.product_name.slice(0, 20) + '…' : p.product_name,
+    fullName: p.product_name,
+    brand: p.brand || null,
     Revenue: p.total_revenue,
+  }))
+
+  // ── Top brands horizontal bars ────────────────────────────────────────────
+  const topBrandsData = topBrands.map(b => ({
+    name: b.brand,
+    Revenue: b.total_revenue,
   }))
 
   // ── Shipment cost charts ──────────────────────────────────────────────────
@@ -497,60 +512,53 @@ export default function DashboardPage() {
         )}
       </Section>
 
-      {/* Row: Sales over time + Top Products */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Sales over time — full width */}
+      <Section title="Sales Over Time (completed orders, USD)">
+        {loading ? (
+          <Skeleton className="h-56 w-full" />
+        ) : salesChartData.length === 0 ? (
+          <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">
+            No completed orders yet
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={salesChartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-base)" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                tickFormatter={d => {
+                  const date = new Date(d)
+                  return `${date.getMonth() + 1}/${date.getDate()}`
+                }}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
+                tickFormatter={v => '$' + v.toFixed(0)}
+                width={50}
+              />
+              <Tooltip content={<ChartTooltip formatter={(v) => fmtUSD(v)} />} />
+              <Line
+                type="monotone"
+                dataKey="Sales"
+                stroke="#6366f1"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 4, fill: '#6366f1' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        )}
+      </Section>
 
-        {/* Sales over time takes 2/3 */}
-        <div className="lg:col-span-2">
-          <Section title="Sales Over Time (completed orders, USD)">
-            {loading ? (
-              <Skeleton className="h-56 w-full" />
-            ) : salesChartData.length === 0 ? (
-              <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">
-                No completed orders yet
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <LineChart data={salesChartData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-base)" />
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
-                    tickFormatter={d => {
-                      const date = new Date(d)
-                      return `${date.getMonth() + 1}/${date.getDate()}`
-                    }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }}
-                    tickFormatter={v => '$' + v.toFixed(0)}
-                    width={50}
-                  />
-                  <Tooltip
-                    content={<ChartTooltip formatter={(v) => fmtUSD(v)} />}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="Sales"
-                    stroke="#6366f1"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: '#6366f1' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </Section>
-        </div>
+      {/* Row: Top Products + Top Brands side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        {/* Top products takes 1/3 */}
         <Section title="Top Products by Revenue">
           {loading ? (
             <Skeleton className="h-56 w-full" />
           ) : topProductsData.length === 0 ? (
-            <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">
-              No data
-            </div>
+            <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">No data</div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart
@@ -571,9 +579,61 @@ export default function DashboardPage() {
                   width={90}
                 />
                 <Tooltip
-                  content={<ChartTooltip formatter={(v) => fmtUSD(v)} />}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null
+                    const d = payload[0].payload
+                    return (
+                      <div className="bg-white border border-(--color-border-base) rounded-lg shadow-sm p-3 text-xs">
+                        <p className="font-medium text-(--color-text-base) mb-0.5">{d.fullName}</p>
+                        {d.brand && <p className="text-(--color-text-muted) mb-1">{d.brand}</p>}
+                        <p style={{ color: payload[0].fill }} className="font-medium">{fmtUSD(payload[0].value)}</p>
+                      </div>
+                    )
+                  }}
                 />
                 <Bar dataKey="Revenue" fill="#22c55e" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Section>
+
+        <Section title="Top Brands by Revenue">
+          {loading ? (
+            <Skeleton className="h-56 w-full" />
+          ) : topBrandsData.length === 0 ? (
+            <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">No data</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart
+                data={topBrandsData}
+                layout="vertical"
+                margin={{ top: 4, right: 8, left: 4, bottom: 4 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border-base)" horizontal={false} />
+                <XAxis
+                  type="number"
+                  tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }}
+                  tickFormatter={v => '$' + (v >= 1000 ? (v / 1000).toFixed(1) + 'k' : v.toFixed(0))}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  tick={{ fontSize: 10, fill: 'var(--color-text-muted)' }}
+                  width={90}
+                />
+                <Tooltip
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null
+                    const d = payload[0].payload
+                    return (
+                      <div className="bg-white border border-(--color-border-base) rounded-lg shadow-sm p-3 text-xs">
+                        <p className="font-medium text-(--color-text-base) mb-0.5">{d.name}</p>
+                        <p style={{ color: payload[0].fill }} className="font-medium">{fmtUSD(payload[0].value)}</p>
+                      </div>
+                    )
+                  }}
+                />
+                <Bar dataKey="Revenue" fill="#6366f1" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
