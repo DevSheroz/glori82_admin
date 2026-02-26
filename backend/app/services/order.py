@@ -237,6 +237,39 @@ async def _build_order_items(db: AsyncSession, items_data) -> list[OrderItem]:
 _PAID_STATUSES = {"paid_card", "paid_cash"}
 
 
+async def _apply_customer_budget(order: Order, db: AsyncSession) -> None:
+    """Refund any previously applied budget, then re-apply as much as needed."""
+    if not order.customer_id:
+        order.budget_applied_uzs = Decimal(0)
+        return
+
+    customer = await db.get(Customer, order.customer_id)
+    if not customer:
+        order.budget_applied_uzs = Decimal(0)
+        return
+
+    # Refund the previously applied amount back to the customer balance
+    prev_applied = order.budget_applied_uzs or Decimal(0)
+    customer.budget = (customer.budget or Decimal(0)) + prev_applied
+
+    # Compute total price in UZS using live rate
+    total_uzs = await _compute_final_amount_uzs(order, db)
+    if not total_uzs or customer.budget <= 0:
+        order.budget_applied_uzs = Decimal(0)
+        return
+
+    # How much is still owed after card/cash payments
+    paid = (order.paid_card or Decimal(0)) + (order.paid_cash or Decimal(0))
+    remaining = max(Decimal(0), total_uzs - paid)
+    if remaining <= 0:
+        order.budget_applied_uzs = Decimal(0)
+        return
+
+    applied = min(customer.budget, remaining).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    customer.budget = (customer.budget - applied).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    order.budget_applied_uzs = applied
+
+
 async def _compute_final_amount_uzs(order: Order, db: AsyncSession) -> Decimal | None:
     """Compute total_price_uzs using live rate and lock it on the order.
 
@@ -293,6 +326,8 @@ async def create_order(db: AsyncSession, data: OrderCreate) -> Order:
     order = Order(**order_dict)
     order.items.extend(await _build_order_items(db, data.items))
     db.add(order)
+    await db.flush()
+    await _apply_customer_budget(order, db)
     await db.commit()
     return await get_order(db, order.order_id)
 
@@ -337,6 +372,7 @@ async def update_order(db: AsyncSession, order_id: int, data: OrderUpdate) -> Or
     else:
         order.final_amount_uzs = None
 
+    await _apply_customer_budget(order, db)
     await db.commit()
     return await get_order(db, order_id)
 

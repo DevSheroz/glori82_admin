@@ -72,6 +72,20 @@ export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelect
       ),
     },
     {
+      key: 'budget',
+      label: 'Budget',
+      render: (row) => {
+        const amount = Number(row.budget) || 0
+        return amount > 0 ? (
+          <span className="text-sm font-medium text-emerald-600 tabular-nums">
+            {Math.round(amount).toLocaleString('en-US')} UZS
+          </span>
+        ) : (
+          <span className="text-(--color-text-subtle)">—</span>
+        )
+      },
+    },
+    {
       key: 'is_active',
       label: 'Status',
       render: (row) =>

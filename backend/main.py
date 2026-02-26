@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.api import auth, currency, customers, dashboard, orders, product_categories, products, shipments
 from app.core.database import Base, engine
@@ -12,6 +13,12 @@ import app.models
 async def lifespan(app: FastAPI):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(text(
+            "ALTER TABLE customers ADD COLUMN IF NOT EXISTS budget NUMERIC(15,2) NOT NULL DEFAULT 0"
+        ))
+        await conn.execute(text(
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS budget_applied_uzs NUMERIC(15,2) NOT NULL DEFAULT 0"
+        ))
     yield
 
 

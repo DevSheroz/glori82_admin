@@ -1,4 +1,6 @@
-from sqlalchemy import Boolean, String
+from decimal import Decimal
+
+from sqlalchemy import Boolean, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -14,5 +16,6 @@ class Customer(Base):
     address: Mapped[str | None] = mapped_column(String(255))
     city: Mapped[str | None] = mapped_column(String(100))
     is_active: Mapped[bool] = mapped_column(Boolean, server_default="true")
+    budget: Mapped[Decimal] = mapped_column(Numeric(15, 2), server_default="0")
 
     orders: Mapped[list["Order"]] = relationship(back_populates="customer")

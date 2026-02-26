@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from pydantic import BaseModel, ConfigDict
 
 
@@ -8,6 +10,7 @@ class CustomerBase(BaseModel):
     address: str | None = None
     city: str | None = None
     is_active: bool = True
+    budget: Decimal = Decimal("0")
 
 
 class CustomerCreate(CustomerBase):
@@ -21,6 +24,7 @@ class CustomerUpdate(BaseModel):
     address: str | None = None
     city: str | None = None
     is_active: bool | None = None
+    budget: Decimal | None = None
 
 
 class CustomerResponse(CustomerBase):

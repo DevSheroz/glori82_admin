@@ -286,9 +286,16 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
       label: 'Unpaid (UZS)',
       minWidth: '130px',
       render: (row) => (
-        <span className={`tabular-nums font-medium ${row.unpaid != null && Number(row.unpaid) > 0 ? 'text-red-600' : 'text-green-600'}`}>
-          {row.unpaid != null ? Number(row.unpaid).toLocaleString() : '—'}
-        </span>
+        <div className="flex flex-col gap-0.5">
+          <span className={`tabular-nums font-medium ${row.unpaid != null && Number(row.unpaid) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+            {row.unpaid != null ? Number(row.unpaid).toLocaleString() : '—'}
+          </span>
+          {Number(row.budget_applied_uzs) > 0 && (
+            <span className="text-[10px] font-medium text-emerald-600 bg-emerald-50 ring-1 ring-emerald-200 rounded px-1.5 py-0.5 w-fit">
+              budget −{Math.round(Number(row.budget_applied_uzs)).toLocaleString()}
+            </span>
+          )}
+        </div>
       ),
     },
     {

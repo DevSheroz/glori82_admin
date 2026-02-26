@@ -9,6 +9,7 @@ const initialForm = {
   address: '',
   city: '',
   is_active: true,
+  budget: '',
 }
 
 export default function CustomerModal({ open, onClose, onSave, customer, saving }) {
@@ -24,6 +25,9 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
         address: customer.address ?? '',
         city: customer.city ?? '',
         is_active: customer.is_active ?? true,
+        budget: customer.budget && Number(customer.budget) > 0
+          ? Math.round(Number(customer.budget)).toLocaleString('en-US')
+          : '',
       })
     } else {
       setForm(initialForm)
@@ -35,6 +39,14 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
     setForm((prev) => ({ ...prev, [name]: type === 'checkbox' ? checked : value }))
   }
 
+  const handleBudgetChange = (e) => {
+    const raw = e.target.value.replace(/,/g, '')
+    if (raw === '' || /^\d+$/.test(raw)) {
+      const formatted = raw ? Number(raw).toLocaleString('en-US') : ''
+      setForm((prev) => ({ ...prev, budget: formatted }))
+    }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     onSave({
@@ -44,6 +56,7 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
       address: form.address || null,
       city: form.city || null,
       is_active: form.is_active,
+      budget: Number(form.budget.replace(/,/g, '')) || 0,
     })
   }
 
@@ -126,6 +139,25 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
               className={inputClass}
               placeholder="e.g. Tashkent"
             />
+          </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>Budget (UZS)</label>
+          <div className="relative">
+            <input
+              name="budget"
+              value={form.budget}
+              onChange={handleBudgetChange}
+              className={inputClass}
+              placeholder="0"
+              inputMode="numeric"
+            />
+            {form.budget && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-(--color-text-muted) pointer-events-none">
+                UZS
+              </span>
+            )}
           </div>
         </div>
 

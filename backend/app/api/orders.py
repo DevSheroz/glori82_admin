@@ -95,7 +95,8 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
 
     paid_card = order.paid_card or Decimal(0)
     paid_cash = order.paid_cash or Decimal(0)
-    total_paid = paid_card + paid_cash
+    budget_applied = order.budget_applied_uzs or Decimal(0)
+    total_paid = paid_card + paid_cash + budget_applied
     unpaid = max(Decimal(0), total_price_uzs - total_paid).quantize(
         Decimal("0.01"), rounding=ROUND_HALF_UP
     ) if total_price_uzs else None
@@ -123,6 +124,7 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
         "payment_status": order.payment_status or "unpaid",
         "paid_card": paid_card,
         "paid_cash": paid_cash,
+        "budget_applied_uzs": budget_applied,
         "unpaid": unpaid,
         "final_amount_uzs": order.final_amount_uzs,
         "customer_name": order.customer.customer_name if order.customer else None,

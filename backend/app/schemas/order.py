@@ -105,6 +105,7 @@ class OrderResponse(OrderBase):
     total_price_uzs: Decimal | None = None
     unpaid: Decimal | None = None
     final_amount_uzs: Decimal | None = None
+    budget_applied_uzs: Decimal = Decimal("0")
     items: list[OrderItemResponse] = []
 
     model_config = ConfigDict(from_attributes=True)

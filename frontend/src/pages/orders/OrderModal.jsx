@@ -499,9 +499,10 @@ export default function OrderModal({
     const totalPrice = totalSelling + totalCustomerCargo + serviceFee
     const totalPriceUzs = usdToUzs > 0 ? totalPrice * usdToUzs : 0
     const totalPaid = (Number(form.paid_card) || 0) + (Number(form.paid_cash) || 0)
-    const unpaid = totalPriceUzs - totalPaid
+    const budgetApplied = Number(order?.budget_applied_uzs) || 0
+    const unpaid = totalPriceUzs - totalPaid - budgetApplied
 
-    return { totalSelling, totalWeight, totalCargo, totalCustomerCargo, totalPrice, totalPriceUzs, unpaid }
+    return { totalSelling, totalWeight, totalCargo, totalCustomerCargo, totalPrice, totalPriceUzs, budgetApplied, unpaid }
   }, [form.items, form.service_fee, form.paid_card, form.paid_cash, usdToUzs])
 
   /* ── Submit ── */
@@ -717,6 +718,16 @@ export default function OrderModal({
               </>
             )}
           </div>
+
+          {/* Budget applied display */}
+          {totals.budgetApplied > 0 && (
+            <div className="mt-2 flex items-center gap-3 text-sm">
+              <span className="text-(--color-text-subtle)">Budget applied:</span>
+              <span className="font-semibold tabular-nums text-emerald-600">
+                −{Math.round(totals.budgetApplied).toLocaleString()} UZS
+              </span>
+            </div>
+          )}
 
           {/* Unpaid display */}
           {form.payment_status !== 'unpaid' && totals.totalPriceUzs > 0 && (
