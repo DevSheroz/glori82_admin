@@ -27,6 +27,7 @@ async def list_products(
     category_id: int | None = None,
     brand: str | None = None,
     is_active: bool | None = None,
+    stock_status: str | None = None,
     sort_by: str | None = None,
     sort_dir: str = "asc",
     page: int = Query(1, ge=1),
@@ -35,7 +36,8 @@ async def list_products(
 ):
     items, total = await product_service.get_products(
         db, category_id=category_id, brand=brand, is_active=is_active,
-        sort_by=sort_by, sort_dir=sort_dir, page=page, page_size=page_size,
+        stock_status=stock_status, sort_by=sort_by, sort_dir=sort_dir,
+        page=page, page_size=page_size,
     )
     return PaginatedResponse(data=items, total=total, page=page, page_size=page_size)
 

@@ -8,7 +8,7 @@ import Pagination from '../../components/Pagination'
 import ShipmentModal from './ShipmentModal'
 import ShipmentDetail from './ShipmentDetail'
 import { getColumns } from './columns'
-import { shipmentsApi, ordersApi } from '../../lib/api'
+import { shipmentsApi, ordersApi, productsApi } from '../../lib/api'
 
 const PAGE_SIZE = 20
 
@@ -129,6 +129,7 @@ export default function ShipmentsPage() {
   const [shipments, setShipments] = useState([])
   const [total, setTotal] = useState(0)
   const [allOrders, setAllOrders] = useState([])
+  const [allProducts, setAllProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -154,9 +155,10 @@ export default function ShipmentsPage() {
       const params = { page, page_size: PAGE_SIZE }
       if (filterStatus) params.status = filterStatus
 
-      const [shipmentsRes, ordersRes] = await Promise.all([
+      const [shipmentsRes, ordersRes, productsRes] = await Promise.all([
         shipmentsApi.getAll(params),
         ordersApi.getAll({ page_size: 100, status: 'pending' }),
+        productsApi.getAll({ page_size: 100, is_active: true, stock_status: 'in_stock' }),
       ])
       setShipments(shipmentsRes.data.data)
       setTotal(shipmentsRes.data.total)
@@ -174,6 +176,7 @@ export default function ShipmentsPage() {
         _in_shipment: ordersInShipments.has(o.order_id),
       }))
       setAllOrders(enrichedOrders)
+      setAllProducts(productsRes.data.data)
     } catch (err) {
       setError('Failed to load data. Make sure the backend is running.')
       console.error(err)
@@ -445,6 +448,7 @@ export default function ShipmentsPage() {
         onSave={handleSave}
         shipment={editingShipment}
         orders={allOrders}
+        products={allProducts}
         saving={saving}
       />
 

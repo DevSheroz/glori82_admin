@@ -49,9 +49,21 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <span className="font-semibold text-(--color-text-base) leading-snug">{product.product_name}</span>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full shrink-0 ${stockBadgeClass}`}>
-              {stockLabel}
-            </span>
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${stockBadgeClass}`}>
+                {stockLabel}
+              </span>
+              {product.in_shipment_qty > 0 && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full text-blue-600 bg-blue-50 ring-1 ring-blue-200">
+                  In Shipment ×{product.in_shipment_qty}
+                </span>
+              )}
+              {product.sent_qty > 0 && (
+                <span className="text-xs font-medium px-2 py-0.5 rounded-full text-green-700 bg-green-50 ring-1 ring-green-200">
+                  Sent ×{product.sent_qty}
+                </span>
+              )}
+            </div>
           </div>
           {attrText && (
             <div className="text-xs text-(--color-text-muted) mt-0.5">{attrText}</div>

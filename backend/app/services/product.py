@@ -4,6 +4,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.order_item import OrderItem
 from app.models.product import Product
+from app.models.shipment import Shipment, ShipmentStockItem
 from app.models.product_attribute_value import ProductAttributeValue
 from app.models.product_category import ProductCategory
 from app.schemas.product import ProductCreate, ProductUpdate
@@ -27,6 +28,7 @@ async def get_products(
     category_id: int | None = None,
     brand: str | None = None,
     is_active: bool | None = None,
+    stock_status: str | None = None,
     sort_by: str | None = None,
     sort_dir: str = "asc",
     page: int = 1,
@@ -39,6 +41,8 @@ async def get_products(
         query = query.where(Product.brand == brand)
     if is_active is not None:
         query = query.where(Product.is_active == is_active)
+    if stock_status is not None:
+        query = query.where(Product.stock_status == stock_status)
 
     count_q = select(func.count()).select_from(query.subquery())
     total = (await db.execute(count_q)).scalar() or 0
@@ -65,8 +69,33 @@ async def get_products(
             .group_by(OrderItem.product_id)
         )
         counts_map = {row[0]: row[1] for row in counts_result.all()}
+
+        in_shipment_result = await db.execute(
+            select(ShipmentStockItem.product_id, func.coalesce(func.sum(ShipmentStockItem.quantity), 0))
+            .join(Shipment, ShipmentStockItem.shipment_id == Shipment.shipment_id)
+            .where(
+                ShipmentStockItem.product_id.in_(product_ids),
+                Shipment.status.in_(["pending", "shipped", "arrived"]),
+            )
+            .group_by(ShipmentStockItem.product_id)
+        )
+        in_shipment_map = {row[0]: int(row[1]) for row in in_shipment_result.all()}
+
+        sent_result = await db.execute(
+            select(ShipmentStockItem.product_id, func.coalesce(func.sum(ShipmentStockItem.quantity), 0))
+            .join(Shipment, ShipmentStockItem.shipment_id == Shipment.shipment_id)
+            .where(
+                ShipmentStockItem.product_id.in_(product_ids),
+                Shipment.status.in_(["received", "completed"]),
+            )
+            .group_by(ShipmentStockItem.product_id)
+        )
+        sent_map = {row[0]: int(row[1]) for row in sent_result.all()}
+
         for p in products:
             p.times_ordered = counts_map.get(p.product_id, 0)
+            p.in_shipment_qty = in_shipment_map.get(p.product_id, 0)
+            p.sent_qty = sent_map.get(p.product_id, 0)
 
     return products, total
 
@@ -84,6 +113,26 @@ async def get_product(db: AsyncSession, product_id: int) -> Product | None:
             .where(OrderItem.product_id == product_id)
         )
         product.times_ordered = count_result.scalar()
+
+        in_shipment_result = await db.execute(
+            select(func.coalesce(func.sum(ShipmentStockItem.quantity), 0))
+            .join(Shipment, ShipmentStockItem.shipment_id == Shipment.shipment_id)
+            .where(
+                ShipmentStockItem.product_id == product_id,
+                Shipment.status.in_(["pending", "shipped", "arrived"]),
+            )
+        )
+        product.in_shipment_qty = int(in_shipment_result.scalar() or 0)
+
+        sent_result = await db.execute(
+            select(func.coalesce(func.sum(ShipmentStockItem.quantity), 0))
+            .join(Shipment, ShipmentStockItem.shipment_id == Shipment.shipment_id)
+            .where(
+                ShipmentStockItem.product_id == product_id,
+                Shipment.status.in_(["received", "completed"]),
+            )
+        )
+        product.sent_qty = int(sent_result.scalar() or 0)
     return product
 
 

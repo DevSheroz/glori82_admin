@@ -134,6 +134,47 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
         </div>
       </div>
 
+      {/* In-stock items table */}
+      {shipment.stock_items?.length > 0 && (
+        <div className="mt-5">
+          <span className="text-xs font-medium text-(--color-text-subtle) block mb-2">
+            In-Stock Items ({shipment.stock_items.length})
+          </span>
+          <div className="rounded-md ring-1 ring-(--color-border-base) overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-(--color-border-base) bg-(--color-bg-subtle)">
+                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">Product</th>
+                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">Qty</th>
+                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">Weight</th>
+                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">Cost (KRW)</th>
+                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">Selling (USD)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-(--color-border-base)">
+                {shipment.stock_items.map((item) => (
+                  <tr key={item.product_id} className="hover:bg-(--color-bg-subtle)">
+                    <td className="px-3 py-2 font-medium text-(--color-text-base)">{item.product_name}</td>
+                    <td className="px-3 py-2 tabular-nums text-(--color-text-subtle)">{item.quantity}</td>
+                    <td className="px-3 py-2 tabular-nums text-(--color-text-subtle)">
+                      {Number(item.weight_kg).toFixed(2)} kg
+                    </td>
+                    <td className="px-3 py-2 tabular-nums text-(--color-text-subtle)">
+                      {Number(item.cost_price_krw).toLocaleString()} ₩
+                    </td>
+                    <td className="px-3 py-2 tabular-nums text-(--color-text-subtle)">
+                      {item.selling_price_usd != null
+                        ? `$${Number(item.selling_price_usd).toFixed(2)}`
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* History timeline */}
       {shipment.history?.length > 0 && (
         <div className="mt-5">

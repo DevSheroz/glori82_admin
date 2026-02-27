@@ -200,7 +200,17 @@ export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, sele
     {
       key: 'status',
       label: <SortHeader label="Status" sortKey="stock_status" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
-      render: (row) => getStockBadge(row),
+      render: (row) => (
+        <div className="flex flex-col gap-1">
+          {getStockBadge(row)}
+          {row.in_shipment_qty > 0 && (
+            <Badge variant="info">In Shipment ×{row.in_shipment_qty}</Badge>
+          )}
+          {row.sent_qty > 0 && (
+            <Badge variant="success">Sent ×{row.sent_qty}</Badge>
+          )}
+        </div>
+      ),
     },
   ]
 }

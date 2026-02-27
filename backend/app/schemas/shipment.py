@@ -7,13 +7,20 @@ from pydantic import BaseModel, ConfigDict
 SHIPMENT_STATUSES = Literal["pending", "shipped", "arrived", "received", "completed"]
 
 
+class StockItemIn(BaseModel):
+    product_id: int
+    quantity: int = 1
+
+
 class ShipmentCreate(BaseModel):
-    order_ids: list[int]
+    order_ids: list[int] = []
+    stock_items: list[StockItemIn] = []
     notes: str | None = None
 
 
 class ShipmentUpdate(BaseModel):
     order_ids: list[int] | None = None
+    stock_items: list[StockItemIn] | None = None
     status: SHIPMENT_STATUSES | None = None
     notes: str | None = None
 
@@ -32,6 +39,17 @@ class ShipmentOrderSummary(BaseModel):
     shipping_fee_uzs: Decimal
     status: str | None = None
     items_summary: str | None = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StockItemSummary(BaseModel):
+    product_id: int
+    product_name: str
+    quantity: int
+    weight_kg: Decimal
+    cost_price_krw: Decimal
+    selling_price_usd: Decimal | None = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -59,6 +77,7 @@ class ShipmentResponse(BaseModel):
     total_orders_uzs: Decimal
     grand_total_uzs: Decimal
     orders: list[ShipmentOrderSummary] = []
+    stock_items: list[StockItemSummary] = []
     history: list[ShipmentHistoryEntry] = []
 
     model_config = ConfigDict(from_attributes=True)

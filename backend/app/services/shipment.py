@@ -8,7 +8,7 @@ from app.models.customer import Customer
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
-from app.models.shipment import Shipment, ShipmentHistory, ShipmentOrder
+from app.models.shipment import Shipment, ShipmentHistory, ShipmentOrder, ShipmentStockItem
 from app.schemas.shipment import ShipmentCreate, ShipmentUpdate
 from app.services.currency import get_rates
 
@@ -84,6 +84,23 @@ def _build_response(shipment: Shipment, usd_to_uzs: Decimal = Decimal(0)) -> dic
             "items_summary": _items_summary(order),
         })
 
+    # Stock items — add their weight to the shipment total
+    stock_items_data = []
+    for si in shipment.stock_items:
+        product = si.product
+        if not product:
+            continue
+        weight_kg = Decimal(product.packaged_weight_grams or 0) / Decimal(1000) * si.quantity
+        total_weight += weight_kg
+        stock_items_data.append({
+            "product_id": product.product_id,
+            "product_name": product.product_name,
+            "quantity": si.quantity,
+            "weight_kg": weight_kg,
+            "cost_price_krw": product.cost_price,
+            "selling_price_usd": product.selling_price,
+        })
+
     shipment_fee = total_weight * Decimal(12)
     shipment_fee_uzs = (shipment_fee * usd_to_uzs).quantize(
         Decimal("0.01"), rounding=ROUND_HALF_UP
@@ -111,6 +128,7 @@ def _build_response(shipment: Shipment, usd_to_uzs: Decimal = Decimal(0)) -> dic
         "total_orders_uzs": total_orders_uzs,
         "grand_total_uzs": grand_total_uzs,
         "orders": orders_data,
+        "stock_items": stock_items_data,
         "history": history,
     }
 
@@ -123,6 +141,8 @@ _shipment_load_options = [
     selectinload(Shipment.shipment_orders)
     .selectinload(ShipmentOrder.order)
     .selectinload(Order.customer),
+    selectinload(Shipment.stock_items)
+    .selectinload(ShipmentStockItem.product),
     selectinload(Shipment.history),
 ]
 
@@ -188,12 +208,19 @@ async def create_shipment(db: AsyncSession, data: ShipmentCreate) -> dict:
     )
     for order_id in data.order_ids:
         shipment.shipment_orders.append(ShipmentOrder(order_id=order_id))
+    for si in data.stock_items:
+        shipment.stock_items.append(ShipmentStockItem(product_id=si.product_id, quantity=si.quantity))
     db.add(shipment)
     await db.flush()
 
+    action_parts = []
+    if data.order_ids:
+        action_parts.append(f"{len(data.order_ids)} order(s)")
+    if data.stock_items:
+        action_parts.append(f"{len(data.stock_items)} in-stock item(s)")
     db.add(ShipmentHistory(
         shipment_id=shipment.shipment_id,
-        action=f"Shipment created with {len(data.order_ids)} order(s)",
+        action=f"Shipment created with {', '.join(action_parts) or 'no items'}",
     ))
 
     # Stamp shipping_number on all orders in this shipment
@@ -213,7 +240,10 @@ async def update_shipment(
 ) -> dict | None:
     query = (
         select(Shipment)
-        .options(selectinload(Shipment.shipment_orders))
+        .options(
+            selectinload(Shipment.shipment_orders),
+            selectinload(Shipment.stock_items),
+        )
         .where(Shipment.shipment_id == shipment_id)
     )
     result = await db.execute(query)
@@ -291,6 +321,19 @@ async def update_shipment(
             )
             for order in added_result.scalars().all():
                 order.shipping_number = shipment.shipment_number
+
+    if data.stock_items is not None:
+        old_stock_count = len(shipment.stock_items)
+        new_stock_count = len(data.stock_items)
+        shipment.stock_items.clear()
+        for si in data.stock_items:
+            shipment.stock_items.append(
+                ShipmentStockItem(product_id=si.product_id, quantity=si.quantity)
+            )
+        if old_stock_count != new_stock_count:
+            history_actions.append(
+                f"In-stock items updated: {old_stock_count} → {new_stock_count} item(s)"
+            )
 
     # Record history
     if not history_actions:

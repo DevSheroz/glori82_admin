@@ -48,6 +48,8 @@ class ProductUpdate(BaseModel):
 class ProductResponse(ProductBase):
     product_id: int
     times_ordered: int = 0
+    in_shipment_qty: int = 0
+    sent_qty: int = 0
     attribute_values: list[ProductAttributeValueResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
