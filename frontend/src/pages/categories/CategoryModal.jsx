@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Plus, X, GripVertical } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import Modal from '../../components/Modal'
 import Button from '../../components/Button'
 import { categoriesApi } from '../../lib/api'
@@ -88,6 +89,7 @@ export default function CategoryModal({ open, onClose, onSave, onDone, category,
   }
 
   const isEdit = !!category
+  const { t } = useTranslation()
   const visibleAttributes = attributes.filter((a) => !a._deleted)
 
   const inputClass =
@@ -99,45 +101,45 @@ export default function CategoryModal({ open, onClose, onSave, onDone, category,
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? 'Edit Category' : 'Add Category'}
+      title={isEdit ? t('categories.modal.title_edit') : t('categories.modal.title_add')}
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button variant="primary" onClick={handleSubmit} disabled={saving || !form.category_name.trim()}>
-            {saving ? 'Saving...' : isEdit ? 'Update' : 'Create'}
+            {saving ? t('common.saving') : isEdit ? t('categories.modal.update') : t('categories.modal.create')}
           </Button>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className={labelClass}>Name *</label>
+          <label className={labelClass}>{t('categories.modal.name')}</label>
           <input
             name="category_name"
             value={form.category_name}
             onChange={handleChange}
             className={inputClass}
-            placeholder="Category name"
+            placeholder={t('categories.modal.name_placeholder')}
             required
           />
         </div>
 
         <div>
-          <label className={labelClass}>Description</label>
+          <label className={labelClass}>{t('categories.modal.description')}</label>
           <textarea
             name="description"
             value={form.description}
             onChange={handleChange}
             rows={3}
             className={inputClass}
-            placeholder="Optional description"
+            placeholder={t('categories.modal.description_placeholder')}
           />
         </div>
 
         <div>
-          <label className={labelClass}>Attributes</label>
+          <label className={labelClass}>{t('categories.modal.attributes')}</label>
           <div className="space-y-2">
             {visibleAttributes.map((attr, index) => {
               const realIndex = attributes.indexOf(attr)
@@ -148,7 +150,7 @@ export default function CategoryModal({ open, onClose, onSave, onDone, category,
                     value={attr.attribute_name}
                     onChange={(e) => handleAttrNameChange(realIndex, e.target.value)}
                     className={inputClass}
-                    placeholder="Attribute name"
+                    placeholder={t('categories.modal.attr_placeholder')}
                   />
                   <button
                     type="button"
@@ -165,7 +167,7 @@ export default function CategoryModal({ open, onClose, onSave, onDone, category,
                 value={newAttrName}
                 onChange={(e) => setNewAttrName(e.target.value)}
                 className={inputClass}
-                placeholder="New attribute name (e.g. Size, Color)"
+                placeholder={t('categories.modal.new_attr_placeholder')}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     e.preventDefault()

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, Truck, Pencil, Trash2, X } from 'lucide-react'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
@@ -20,17 +21,17 @@ const cardStatusColors = {
   completed: 'text-green-600 bg-green-50 ring-green-200',
 }
 
-const cardStatusOptions = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'shipped', label: 'Shipped' },
-  { value: 'arrived', label: 'Arrived' },
-  { value: 'received', label: 'Received' },
-  { value: 'completed', label: 'Completed' },
-]
-
 const chevronSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`
 
 function ShipmentCard({ shipment, selected, onToggleSelect, onViewDetail, onEdit, onDelete, onStatusChange }) {
+  const { t } = useTranslation()
+  const cardStatusOptions = [
+    { value: 'pending', label: t('shipments.status.pending') },
+    { value: 'shipped', label: t('shipments.status.shipped') },
+    { value: 'arrived', label: t('shipments.status.arrived') },
+    { value: 'received', label: t('shipments.status.received') },
+    { value: 'completed', label: t('shipments.status.completed') },
+  ]
   return (
     <div className={`p-4 space-y-3 transition-colors ${selected ? 'bg-blue-50/40' : ''}`}>
       {/* Row 1: checkbox + shipment # (tappable) + date */}
@@ -126,6 +127,7 @@ function ShipmentCard({ shipment, selected, onToggleSelect, onViewDetail, onEdit
 }
 
 export default function ShipmentsPage() {
+  const { t } = useTranslation()
   const [shipments, setShipments] = useState([])
   const [total, setTotal] = useState(0)
   const [allOrders, setAllOrders] = useState([])
@@ -178,7 +180,7 @@ export default function ShipmentsPage() {
       setAllOrders(enrichedOrders)
       setAllProducts(productsRes.data.data)
     } catch (err) {
-      setError('Failed to load data. Make sure the backend is running.')
+      setError(t('shipments.failed_load'))
       console.error(err)
     } finally {
       setLoading(false)
@@ -220,7 +222,7 @@ export default function ShipmentsPage() {
       fetchData()
     } catch (err) {
       console.error('Save failed:', err)
-      alert('Failed to save shipment. Check the console for details.')
+      alert(t('shipments.failed_save'))
     } finally {
       setSaving(false)
     }
@@ -234,7 +236,7 @@ export default function ShipmentsPage() {
       fetchData()
     } catch (err) {
       console.error('Delete failed:', err)
-      alert('Failed to delete shipments.')
+      alert(t('shipments.failed_delete'))
     }
   }
 
@@ -244,7 +246,7 @@ export default function ShipmentsPage() {
       fetchData()
     } catch (err) {
       console.error('Status update failed:', err)
-      alert('Failed to update status.')
+      alert(t('shipments.failed_save'))
     }
   }
 
@@ -292,7 +294,7 @@ export default function ShipmentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-lg md:text-xl font-semibold text-(--color-text-base)">
-            Shipments
+            {t('shipments.title')}
           </h1>
           <p className="text-sm text-(--color-text-subtle) mt-0.5">
             {total} shipment{total !== 1 ? 's' : ''}
@@ -300,7 +302,7 @@ export default function ShipmentsPage() {
         </div>
         <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
           <Plus className="w-4 h-4" />
-          Add Shipment
+          {t('shipments.add')}
         </Button>
       </div>
 
@@ -311,12 +313,12 @@ export default function ShipmentsPage() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className={selectClass}
           >
-            <option value="">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="shipped">Shipped</option>
-            <option value="arrived">Arrived</option>
-            <option value="received">Received</option>
-            <option value="completed">Completed</option>
+            <option value="">{t('common.all_status')}</option>
+            <option value="pending">{t('shipments.status.pending')}</option>
+            <option value="shipped">{t('shipments.status.shipped')}</option>
+            <option value="arrived">{t('shipments.status.arrived')}</option>
+            <option value="received">{t('shipments.status.received')}</option>
+            <option value="completed">{t('shipments.status.completed')}</option>
           </select>
 
           {filterStatus && (
@@ -324,7 +326,7 @@ export default function ShipmentsPage() {
               onClick={() => setFilterStatus('')}
               className="text-xs text-(--color-text-subtle) hover:text-(--color-text-base) underline cursor-pointer"
             >
-              Clear filters
+              {t('common.clear_filters')}
             </button>
           )}
         </div>
@@ -340,13 +342,13 @@ export default function ShipmentsPage() {
           <Container className="p-3!">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-(--color-text-base)">
-                {selectedIds.size} selected
+                {t('common.selected', { count: selectedIds.size })}
               </span>
               <div className="flex items-center gap-2">
                 {selectedIds.size === 1 && (
                   <Button variant="secondary" size="sm" onClick={handleEditSelected}>
                     <Pencil className="w-3.5 h-3.5" />
-                    Edit
+                    {t('common.edit')}
                   </Button>
                 )}
                 <Button
@@ -355,7 +357,7 @@ export default function ShipmentsPage() {
                   onClick={() => setDeleteTarget([...selectedIds])}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Delete ({selectedIds.size})
+                  {t('common.delete')} ({selectedIds.size})
                 </Button>
               </div>
               <button
@@ -388,14 +390,14 @@ export default function ShipmentsPage() {
           <div className="p-8 text-center">
             <p className="text-sm text-(--color-danger)">{error}</p>
             <Button variant="secondary" size="sm" onClick={fetchData} className="mt-3">
-              Retry
+              {t('common.retry')}
             </Button>
           </div>
         ) : shipments.length === 0 ? (
           <EmptyState
             icon={Truck}
-            title="No shipments found"
-            description="Create your first shipment to group orders for shipping."
+            title={t('shipments.no_found')}
+            description={t('shipments.no_found_desc')}
           />
         ) : (
           <>
@@ -467,7 +469,7 @@ export default function ShipmentsPage() {
           />
           <div className="relative bg-white rounded-lg ring-1 ring-(--color-border-base) shadow-lg w-full max-w-sm mx-4 p-5">
             <h3 className="text-base font-semibold text-(--color-text-base) mb-2">
-              Delete {deleteTarget.length === 1 ? 'Shipment' : `${deleteTarget.length} Shipments`}
+              {deleteTarget.length === 1 ? t('shipments.delete_single') : t('shipments.delete_many', { count: deleteTarget.length })}
             </h3>
             <p className="text-sm text-(--color-text-subtle) mb-5">
               Are you sure you want to delete{' '}
@@ -476,14 +478,14 @@ export default function ShipmentsPage() {
                   ? shipments.find((s) => s.shipment_id === deleteTarget[0])?.shipment_number
                   : `${deleteTarget.length} shipments`}
               </span>
-              ? The orders will not be deleted.
+              ? {t('shipments.orders_not_deleted')}
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button variant="danger" onClick={handleBulkDelete}>
-                Delete
+                {t('common.delete')}
               </Button>
             </div>
           </div>

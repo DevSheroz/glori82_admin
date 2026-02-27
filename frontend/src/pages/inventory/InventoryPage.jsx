@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Plus, Package, Pencil, Trash2, X } from 'lucide-react'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
@@ -12,6 +13,7 @@ import { productsApi, categoriesApi, currencyApi } from '../../lib/api'
 const PAGE_SIZE = 20
 
 function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, onEdit, onDelete }) {
+  const { t } = useTranslation()
   const attrs = product.attribute_values ?? []
   const attrText = attrs.map((a) => `${a.attribute_name}: ${a.value}`).join(', ')
   const cat = categories.find((c) => c.category_id === product.category_id)
@@ -26,13 +28,13 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
   const cargo = product.packaged_weight_grams != null ? ((product.packaged_weight_grams / 1000) * 12).toFixed(2) : null
 
   let stockBadgeClass = 'text-green-700 bg-green-50 ring-1 ring-green-200'
-  let stockLabel = 'In Stock'
+  let stockLabel = t('inventory.stock_status.in_stock')
   if (product.stock_status === 'out_of_stock') {
     stockBadgeClass = 'text-red-600 bg-red-50 ring-1 ring-red-200'
-    stockLabel = 'Out of Stock'
+    stockLabel = t('inventory.stock_status.out_of_stock')
   } else if (product.stock_status === 'pre_order') {
     stockBadgeClass = 'text-amber-600 bg-amber-50 ring-1 ring-amber-200'
-    stockLabel = 'Pre-order'
+    stockLabel = t('inventory.stock_status.pre_order')
   }
 
   return (
@@ -55,12 +57,12 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
               </span>
               {product.in_shipment_qty > 0 && (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full text-blue-600 bg-blue-50 ring-1 ring-blue-200">
-                  In Shipment ×{product.in_shipment_qty}
+                  {t('inventory.in_shipment', { qty: product.in_shipment_qty })}
                 </span>
               )}
               {product.sent_qty > 0 && (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full text-green-700 bg-green-50 ring-1 ring-green-200">
-                  Sent ×{product.sent_qty}
+                  {t('inventory.sent', { qty: product.sent_qty })}
                 </span>
               )}
             </div>
@@ -82,19 +84,19 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
       {/* Row 2: prices */}
       <div className="ml-7 grid grid-cols-3 gap-2">
         <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">Cost (KRW)</div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_cost')}</div>
           <span className="tabular-nums text-sm font-medium">
             {product.cost_price != null ? Number(product.cost_price).toLocaleString() : '—'}
           </span>
         </div>
         <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">Selling (USD)</div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_selling')}</div>
           <span className="tabular-nums text-sm font-medium">
             {product.selling_price != null ? `$${Number(product.selling_price).toFixed(2)}` : '—'}
           </span>
         </div>
         <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">Total (UZS)</div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_total')}</div>
           <span className="tabular-nums text-sm font-medium">
             {totalUzs != null ? totalUzs.toLocaleString() : '—'}
           </span>
@@ -105,22 +107,22 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
       <div className="ml-7 flex items-center gap-4 text-sm">
         {weightKg && (
           <div>
-            <div className="text-xs text-(--color-text-muted) mb-0.5">Weight</div>
+            <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_weight')}</div>
             <span className="tabular-nums">{weightKg} kg</span>
           </div>
         )}
         {cargo && (
           <div>
-            <div className="text-xs text-(--color-text-muted) mb-0.5">Cargo</div>
+            <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_cargo')}</div>
             <span className="tabular-nums">${cargo}</span>
           </div>
         )}
         <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">Stock</div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_stock')}</div>
           <span className="tabular-nums">{product.stock_quantity}</span>
         </div>
         <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">Ordered</div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_ordered')}</div>
           <span className="tabular-nums">{product.times_ordered ?? 0}</span>
         </div>
       </div>
@@ -145,6 +147,7 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
 }
 
 export default function InventoryPage() {
+  const { t } = useTranslation()
   const [products, setProducts] = useState([])
   const [total, setTotal] = useState(0)
   const [categories, setCategories] = useState([])
@@ -240,7 +243,7 @@ export default function InventoryPage() {
       fetchData()
     } catch (err) {
       console.error('Save failed:', err)
-      alert('Failed to save product. Check the console for details.')
+      alert(t('inventory.failed_save'))
     } finally {
       setSaving(false)
     }
@@ -254,7 +257,7 @@ export default function InventoryPage() {
       fetchData()
     } catch (err) {
       console.error('Delete failed:', err)
-      alert('Failed to delete products.')
+      alert(t('inventory.failed_delete'))
     }
   }
 
@@ -306,15 +309,15 @@ export default function InventoryPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-lg md:text-xl font-semibold text-(--color-text-base)">
-            Inventory
+            {t('inventory.title')}
           </h1>
           <p className="text-sm text-(--color-text-subtle) mt-0.5">
-            {total} product{total !== 1 ? 's' : ''} in catalog
+            {total !== 1 ? t('inventory.count_plural', { count: total }) : t('inventory.count', { count: total })}
           </p>
         </div>
         <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
           <Plus className="w-4 h-4" />
-          Add Product
+          {t('inventory.add')}
         </Button>
       </div>
 
@@ -326,7 +329,7 @@ export default function InventoryPage() {
             onChange={(e) => setFilterCategory(e.target.value)}
             className={selectClass}
           >
-            <option value="">All Categories</option>
+            <option value="">{t('inventory.all_categories')}</option>
             {categories.map((c) => (
               <option key={c.category_id} value={c.category_id}>
                 {c.category_name}
@@ -339,9 +342,9 @@ export default function InventoryPage() {
             onChange={(e) => setFilterActive(e.target.value)}
             className={selectClass}
           >
-            <option value="all">All Status</option>
-            <option value="active">Active Only</option>
-            <option value="inactive">Inactive Only</option>
+            <option value="all">{t('inventory.all_active')}</option>
+            <option value="active">{t('inventory.active_only')}</option>
+            <option value="inactive">{t('inventory.inactive_only')}</option>
           </select>
 
           {(filterCategory || filterActive !== 'all') && (
@@ -352,7 +355,7 @@ export default function InventoryPage() {
               }}
               className="text-xs text-(--color-text-subtle) hover:text-(--color-text-base) underline cursor-pointer"
             >
-              Clear filters
+              {t('common.clear_filters')}
             </button>
           )}
         </div>
@@ -368,13 +371,13 @@ export default function InventoryPage() {
           <Container className="p-3!">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-(--color-text-base)">
-                {selectedIds.size} selected
+                {t('common.selected', { count: selectedIds.size })}
               </span>
               <div className="flex items-center gap-2">
                 {selectedIds.size === 1 && (
                   <Button variant="secondary" size="sm" onClick={handleEditSelected}>
                     <Pencil className="w-3.5 h-3.5" />
-                    Edit
+                    {t('common.edit')}
                   </Button>
                 )}
                 <Button
@@ -383,7 +386,7 @@ export default function InventoryPage() {
                   onClick={() => setDeleteTarget([...selectedIds])}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Delete ({selectedIds.size})
+                  {t('common.delete')} ({selectedIds.size})
                 </Button>
               </div>
               <button
@@ -417,14 +420,14 @@ export default function InventoryPage() {
           <div className="p-8 text-center">
             <p className="text-sm text-(--color-danger)">{error}</p>
             <Button variant="secondary" size="sm" onClick={fetchData} className="mt-3">
-              Retry
+              {t('common.retry')}
             </Button>
           </div>
         ) : products.length === 0 ? (
           <EmptyState
             icon={Package}
-            title="No products found"
-            description="Add your first product to get started."
+            title={t('inventory.no_found')}
+            description={t('inventory.no_found_desc')}
           />
         ) : (
           <>
@@ -437,7 +440,7 @@ export default function InventoryPage() {
                   onChange={toggleAll}
                   className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
                 />
-                <span className="text-xs text-(--color-text-subtle)">Select all</span>
+                <span className="text-xs text-(--color-text-subtle)">{t('common.select_all')}</span>
               </div>
               {products.map((product) => (
                 <ProductCard
@@ -490,23 +493,23 @@ export default function InventoryPage() {
           />
           <div className="relative bg-white rounded-lg ring-1 ring-(--color-border-base) shadow-lg w-full max-w-sm mx-4 p-5">
             <h3 className="text-base font-semibold text-(--color-text-base) mb-2">
-              Delete {deleteTarget.length === 1 ? 'Product' : `${deleteTarget.length} Products`}
+              {deleteTarget.length === 1 ? t('inventory.delete_single') : t('inventory.delete_many', { count: deleteTarget.length })}
             </h3>
             <p className="text-sm text-(--color-text-subtle) mb-5">
-              Are you sure you want to delete{' '}
+              {t('common.delete_confirm')}{' '}
               <span className="font-medium text-(--color-text-base)">
                 {deleteTarget.length === 1
                   ? products.find((p) => p.product_id === deleteTarget[0])?.product_name
-                  : `${deleteTarget.length} products`}
+                  : t('inventory.delete_many_label', { count: deleteTarget.length })}
               </span>
-              ? This action cannot be undone.
+              ? {t('common.cannot_be_undone')}
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button variant="danger" onClick={handleBulkDelete}>
-                Delete
+                {t('common.delete')}
               </Button>
             </div>
           </div>

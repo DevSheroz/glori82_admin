@@ -1,8 +1,10 @@
 import Badge from '../../components/Badge'
+import { useTranslation } from 'react-i18next'
 
 const checkboxClass = 'rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer'
 
 export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelected }) {
+  const { t } = useTranslation()
   return [
     {
       key: 'select',
@@ -28,7 +30,7 @@ export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelect
     },
     {
       key: 'category_name',
-      label: 'Name',
+      label: t('categories.col_name'),
       render: (row) => (
         <span className="font-medium text-(--color-text-base)">
           {row.category_name}
@@ -37,7 +39,7 @@ export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelect
     },
     {
       key: 'description',
-      label: 'Description',
+      label: t('categories.col_description'),
       render: (row) => (
         <span className="text-(--color-text-subtle)">
           {row.description || '—'}
@@ -46,7 +48,7 @@ export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelect
     },
     {
       key: 'attributes',
-      label: 'Attributes',
+      label: t('categories.col_attributes'),
       render: (row) => {
         const attrs = row.attributes ?? []
         if (attrs.length === 0) return <span className="text-(--color-text-muted)">—</span>

@@ -6,6 +6,7 @@ import {
 import {
   TrendingUp, DollarSign, AlertCircle, ShoppingBag,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { dashboardApi } from '../../lib/api'
 
 // ─── Formatters ─────────────────────────────────────────────────────────────
@@ -69,14 +70,14 @@ function Section({ title, children }) {
   )
 }
 
-// ─── Status badge (simple colored dot + label) ───────────────────────────────
+// ─── Status dot colors ───────────────────────────────────────────────────────
 
-const STATUS_COLORS = {
-  pending:   { dot: '#f59e0b', label: 'Pending' },
-  shipped:   { dot: '#6366f1', label: 'Shipped' },
-  arrived:   { dot: '#0ea5e9', label: 'Arrived' },
-  received:  { dot: '#8b5cf6', label: 'Received' },
-  completed: { dot: '#22c55e', label: 'Completed' },
+const STATUS_DOT_COLORS = {
+  pending:   '#f59e0b',
+  shipped:   '#6366f1',
+  arrived:   '#0ea5e9',
+  received:  '#8b5cf6',
+  completed: '#22c55e',
 }
 
 // ─── Custom tooltip for charts ───────────────────────────────────────────────
@@ -99,6 +100,7 @@ function ChartTooltip({ active, payload, label, formatter }) {
 // ─── Main Dashboard ──────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const { t } = useTranslation()
   const [metrics, setMetrics] = useState(null)
   const [profit, setProfit] = useState(null)
   const [unpaid, setUnpaid] = useState([])
@@ -184,39 +186,39 @@ export default function DashboardPage() {
   const kpiCards = [
     {
       icon: TrendingUp,
-      label: 'Total Revenue',
+      label: t('dashboard.kpi.total_revenue'),
       value: fmtUSD(profit?.total_revenue_usd),
-      sub: `${fmtNum(metrics?.sales_count)} completed orders`,
+      sub: `${fmtNum(metrics?.sales_count)} ${t('dashboard.kpi.total_revenue_sub')}`,
       color: 'indigo',
     },
     {
       icon: DollarSign,
-      label: 'Gross Profit',
+      label: t('dashboard.kpi.gross_profit'),
       value: fmtUSD(profit?.gross_profit_usd),
-      sub: `After product cost & cargo`,
+      sub: t('dashboard.kpi.gross_profit_sub'),
       color: 'emerald',
     },
     {
       icon: AlertCircle,
-      label: 'Total Unpaid',
+      label: t('dashboard.kpi.total_unpaid'),
       value: fmtUZS(totalUnpaidUZS),
-      sub: `${unpaid.length} orders outstanding`,
+      sub: `${unpaid.length} ${t('dashboard.kpi.total_unpaid_sub')}`,
       color: 'rose',
     },
     {
       icon: ShoppingBag,
-      label: 'Total Orders',
+      label: t('dashboard.kpi.total_orders'),
       value: fmtNum(profit?.total_orders),
-      sub: `All time`,
+      sub: t('dashboard.kpi.total_orders_sub'),
       color: 'sky',
     },
   ]
 
   // ── Status donut data ─────────────────────────────────────────────────────
   const statusChartData = statusSummary.map(s => ({
-    name: STATUS_COLORS[s.status]?.label ?? s.status,
+    name: t(`orders.status.${s.status}`, { defaultValue: s.status }),
     value: s.count,
-    color: STATUS_COLORS[s.status]?.dot ?? '#d1d5db',
+    color: STATUS_DOT_COLORS[s.status] ?? '#d1d5db',
   }))
 
   // ── Sales chart: last 30 data points ─────────────────────────────────────
@@ -255,14 +257,14 @@ export default function DashboardPage() {
     <div className="p-4 sm:p-6 space-y-6 max-w-screen-2xl mx-auto">
       {/* Header */}
       <div>
-        <h1 className="text-lg font-semibold text-(--color-text-base)">Dashboard</h1>
-        <p className="text-sm text-(--color-text-muted) mt-0.5">Business overview</p>
+        <h1 className="text-lg font-semibold text-(--color-text-base)">{t('dashboard.title')}</h1>
+        <p className="text-sm text-(--color-text-muted) mt-0.5">{t('dashboard.subtitle')}</p>
       </div>
 
       {/* Error banner */}
       {error && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-lg px-4 py-3 text-sm">
-          <strong>Failed to load some data:</strong> {error}
+          <strong>{t('dashboard.failed_load')}:</strong> {error}
         </div>
       )}
 
@@ -278,7 +280,7 @@ export default function DashboardPage() {
 
         {/* Unpaid Orders Table — takes 2/3 width */}
         <div className="lg:col-span-2">
-          <Section title={`Unpaid Orders (${unpaid.length})`}>
+          <Section title={t('dashboard.sections.unpaid_orders', { count: unpaid.length })}>
             {loading ? (
               <div className="space-y-2">
                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
@@ -286,7 +288,7 @@ export default function DashboardPage() {
             ) : unpaid.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-10 text-(--color-text-muted)">
                 <DollarSign className="w-8 h-8 mb-2 opacity-30" />
-                <p className="text-sm">All orders are paid</p>
+                <p className="text-sm">{t('dashboard.table.all_paid')}</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -294,11 +296,11 @@ export default function DashboardPage() {
                   <table className="w-full text-sm">
                     <thead className="sticky top-0 bg-white">
                       <tr className="border-b border-(--color-border-base)">
-                        <th className="text-left text-xs font-medium text-(--color-text-muted) pb-2 pr-3">Order</th>
-                        <th className="text-left text-xs font-medium text-(--color-text-muted) pb-2 pr-3">Customer</th>
-                        <th className="text-left text-xs font-medium text-(--color-text-muted) pb-2 pr-3">Status</th>
-                        <th className="text-right text-xs font-medium text-(--color-text-muted) pb-2 pr-3">Total</th>
-                        <th className="text-right text-xs font-medium text-(--color-text-muted) pb-2">Unpaid</th>
+                        <th className="text-left text-xs font-medium text-(--color-text-muted) pb-2 pr-3">{t('dashboard.table.order')}</th>
+                        <th className="text-left text-xs font-medium text-(--color-text-muted) pb-2 pr-3">{t('dashboard.table.customer')}</th>
+                        <th className="text-left text-xs font-medium text-(--color-text-muted) pb-2 pr-3">{t('dashboard.table.status')}</th>
+                        <th className="text-right text-xs font-medium text-(--color-text-muted) pb-2 pr-3">{t('dashboard.table.total')}</th>
+                        <th className="text-right text-xs font-medium text-(--color-text-muted) pb-2">{t('dashboard.table.unpaid')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -331,7 +333,7 @@ export default function DashboardPage() {
                 </div>
                 {/* Totals row */}
                 <div className="mt-3 pt-3 border-t border-(--color-border-base) flex justify-between items-center">
-                  <span className="text-xs text-(--color-text-muted)">{unpaid.length} outstanding orders</span>
+                  <span className="text-xs text-(--color-text-muted)">{t('dashboard.table.outstanding', { count: unpaid.length })}</span>
                   <span className="text-sm font-semibold text-rose-600">{fmtUZS(totalUnpaidUZS)}</span>
                 </div>
               </div>
@@ -340,11 +342,11 @@ export default function DashboardPage() {
         </div>
 
         {/* Order Status Donut — takes 1/3 width */}
-        <Section title="Order Status">
+        <Section title={t('dashboard.sections.order_status')}>
           {loading ? (
             <Skeleton className="h-56 w-full" />
           ) : statusChartData.length === 0 ? (
-            <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">No data</div>
+            <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">{t('dashboard.no_data')}</div>
           ) : (
             <div>
               <ResponsiveContainer width="100%" height={180}>
@@ -367,7 +369,7 @@ export default function DashboardPage() {
                       active && payload?.length
                         ? <div className="bg-white border border-(--color-border-base) rounded-lg shadow-sm p-2 text-xs">
                             <p className="font-medium">{payload[0].name}</p>
-                            <p className="text-(--color-text-muted)">{payload[0].value} orders</p>
+                            <p className="text-(--color-text-muted)">{payload[0].value} {t('dashboard.table.orders_plural')}</p>
                           </div>
                         : null
                     }
@@ -392,11 +394,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Row: Shipment Revenue & Profit */}
-      <Section title="Revenue & Profit per Shipment (USD)">
+      <Section title={t('dashboard.sections.shipment_revenue')}>
         {loading ? (
           <Skeleton className="h-52 w-full" />
         ) : shipmentRevenue.length === 0 ? (
-          <div className="flex items-center justify-center h-52 text-(--color-text-muted) text-sm">No shipments</div>
+          <div className="flex items-center justify-center h-52 text-(--color-text-muted) text-sm">{t('dashboard.no_shipments')}</div>
         ) : (
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={shipmentRevenue} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
@@ -408,19 +410,19 @@ export default function DashboardPage() {
                 width={55}
               />
               <Tooltip content={<ChartTooltip formatter={v => fmtUSD(v)} />} />
-              <Bar dataKey="revenue_usd" name="Revenue" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="profit_usd" name="Profit" fill="#22c55e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="revenue_usd" name={t('dashboard.charts.revenue')} fill="#6366f1" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="profit_usd" name={t('dashboard.charts.profit')} fill="#22c55e" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
       </Section>
 
       {/* Row: Monthly Revenue & Profit */}
-      <Section title="Monthly Revenue & Profit (USD, all orders)">
+      <Section title={t('dashboard.sections.monthly_revenue')}>
         {loading ? (
           <Skeleton className="h-52 w-full" />
         ) : monthlyRevenue.length === 0 ? (
-          <div className="flex items-center justify-center h-52 text-(--color-text-muted) text-sm">No data</div>
+          <div className="flex items-center justify-center h-52 text-(--color-text-muted) text-sm">{t('dashboard.no_data')}</div>
         ) : (
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={monthlyRevenue} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
@@ -432,8 +434,8 @@ export default function DashboardPage() {
                 width={55}
               />
               <Tooltip content={<ChartTooltip formatter={v => fmtUSD(v)} />} />
-              <Bar dataKey="revenue_usd" name="Revenue" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="profit_usd" name="Profit" fill="#22c55e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="revenue_usd" name={t('dashboard.charts.revenue')} fill="#6366f1" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="profit_usd" name={t('dashboard.charts.profit')} fill="#22c55e" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -443,11 +445,11 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {/* Product Cost per Shipment (KRW) */}
-        <Section title="Product Cost per Shipment (₩ KRW)">
+        <Section title={t('dashboard.sections.product_cost')}>
           {loading ? (
             <Skeleton className="h-52 w-full" />
           ) : shipKrwData.length === 0 ? (
-            <div className="flex items-center justify-center h-52 text-(--color-text-muted) text-sm">No shipments</div>
+            <div className="flex items-center justify-center h-52 text-(--color-text-muted) text-sm">{t('dashboard.no_shipments')}</div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={shipKrwData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
@@ -459,18 +461,18 @@ export default function DashboardPage() {
                   width={60}
                 />
                 <Tooltip content={<ChartTooltip formatter={(v) => fmtKRW(v)} />} />
-                <Bar dataKey="Product Cost (KRW)" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Product Cost (KRW)" name={t('dashboard.charts.product_cost_krw')} fill="#6366f1" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
         </Section>
 
         {/* Cargo Cost per Shipment (USD) */}
-        <Section title="Business Cargo Cost per Shipment ($ USD @ $12/kg)">
+        <Section title={t('dashboard.sections.cargo_cost')}>
           {loading ? (
             <Skeleton className="h-52 w-full" />
           ) : shipUsdData.length === 0 ? (
-            <div className="flex items-center justify-center h-52 text-(--color-text-muted) text-sm">No shipments</div>
+            <div className="flex items-center justify-center h-52 text-(--color-text-muted) text-sm">{t('dashboard.no_shipments')}</div>
           ) : (
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={shipUsdData} margin={{ top: 4, right: 8, left: 8, bottom: 4 }}>
@@ -482,7 +484,7 @@ export default function DashboardPage() {
                   width={50}
                 />
                 <Tooltip content={<ChartTooltip formatter={(v) => fmtUSD(v)} />} />
-                <Bar dataKey="Cargo Cost (USD)" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Cargo Cost (USD)" name={t('dashboard.charts.cargo_cost_usd')} fill="#f59e0b" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -490,7 +492,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Row: Profit breakdown cards */}
-      <Section title="Revenue & Cost Breakdown">
+      <Section title={t('dashboard.sections.cost_breakdown')}>
         {loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-16" />)}
@@ -498,10 +500,10 @@ export default function DashboardPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { label: 'Selling Revenue', value: fmtUSD(profit?.total_selling_usd), color: 'text-indigo-600', bg: 'bg-indigo-50' },
-              { label: 'Service Fees', value: fmtUSD(profit?.total_service_fee_usd), color: 'text-sky-600', bg: 'bg-sky-50' },
-              { label: 'Product Cost', value: fmtKRW(profit?.total_product_cost_krw), color: 'text-amber-600', bg: 'bg-amber-50' },
-              { label: 'Business Cargo', value: fmtUSD(profit?.total_business_cargo_usd), color: 'text-orange-600', bg: 'bg-orange-50' },
+              { label: t('dashboard.breakdown.selling_revenue'), value: fmtUSD(profit?.total_selling_usd), color: 'text-indigo-600', bg: 'bg-indigo-50' },
+              { label: t('dashboard.breakdown.service_fees'), value: fmtUSD(profit?.total_service_fee_usd), color: 'text-sky-600', bg: 'bg-sky-50' },
+              { label: t('dashboard.breakdown.product_cost'), value: fmtKRW(profit?.total_product_cost_krw), color: 'text-amber-600', bg: 'bg-amber-50' },
+              { label: t('dashboard.breakdown.business_cargo'), value: fmtUSD(profit?.total_business_cargo_usd), color: 'text-orange-600', bg: 'bg-orange-50' },
             ].map(item => (
               <div key={item.label} className={`${item.bg} rounded-lg p-4`}>
                 <p className="text-xs font-medium text-(--color-text-muted) mb-1">{item.label}</p>
@@ -513,12 +515,12 @@ export default function DashboardPage() {
       </Section>
 
       {/* Sales over time — full width */}
-      <Section title="Sales Over Time (completed orders, USD)">
+      <Section title={t('dashboard.sections.sales_over_time')}>
         {loading ? (
           <Skeleton className="h-56 w-full" />
         ) : salesChartData.length === 0 ? (
           <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">
-            No completed orders yet
+            {t('dashboard.no_completed')}
           </div>
         ) : (
           <ResponsiveContainer width="100%" height={220}>
@@ -541,6 +543,7 @@ export default function DashboardPage() {
               <Line
                 type="monotone"
                 dataKey="Sales"
+                name={t('dashboard.charts.sales')}
                 stroke="#6366f1"
                 strokeWidth={2}
                 dot={false}
@@ -554,11 +557,11 @@ export default function DashboardPage() {
       {/* Row: Top Products + Top Brands side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-        <Section title="Top Products by Revenue">
+        <Section title={t('dashboard.sections.top_products')}>
           {loading ? (
             <Skeleton className="h-56 w-full" />
           ) : topProductsData.length === 0 ? (
-            <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">No data</div>
+            <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">{t('dashboard.no_data')}</div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart
@@ -591,17 +594,17 @@ export default function DashboardPage() {
                     )
                   }}
                 />
-                <Bar dataKey="Revenue" fill="#22c55e" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="Revenue" name={t('dashboard.charts.revenue')} fill="#22c55e" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
         </Section>
 
-        <Section title="Top Brands by Revenue">
+        <Section title={t('dashboard.sections.top_brands')}>
           {loading ? (
             <Skeleton className="h-56 w-full" />
           ) : topBrandsData.length === 0 ? (
-            <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">No data</div>
+            <div className="flex items-center justify-center h-56 text-(--color-text-muted) text-sm">{t('dashboard.no_data')}</div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart
@@ -633,7 +636,7 @@ export default function DashboardPage() {
                     )
                   }}
                 />
-                <Bar dataKey="Revenue" fill="#6366f1" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="Revenue" name={t('dashboard.charts.revenue')} fill="#6366f1" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}

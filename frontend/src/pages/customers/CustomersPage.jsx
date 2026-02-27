@@ -8,10 +8,12 @@ import Pagination from '../../components/Pagination'
 import CustomerModal from './CustomerModal'
 import { getColumns } from './columns'
 import { customersApi } from '../../lib/api'
+import { useTranslation } from 'react-i18next'
 
 const PAGE_SIZE = 20
 
 export default function CustomersPage() {
+  const { t } = useTranslation()
   const [customers, setCustomers] = useState([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -45,7 +47,7 @@ export default function CustomersPage() {
       setTotal(res.data.total)
       setSelectedIds(new Set())
     } catch (err) {
-      setError('Failed to load customers. Make sure the backend is running.')
+      setError(t('customers.failed_load'))
       console.error(err)
     } finally {
       setLoading(false)
@@ -87,7 +89,7 @@ export default function CustomersPage() {
       fetchData()
     } catch (err) {
       console.error('Save failed:', err)
-      alert('Failed to save customer. Check the console for details.')
+      alert(t('customers.failed_save'))
     } finally {
       setSaving(false)
     }
@@ -101,7 +103,7 @@ export default function CustomersPage() {
       fetchData()
     } catch (err) {
       console.error('Delete failed:', err)
-      alert('Failed to delete customers.')
+      alert(t('customers.failed_delete'))
     }
   }
 
@@ -138,15 +140,15 @@ export default function CustomersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-lg md:text-xl font-semibold text-(--color-text-base)">
-            Customers
+            {t('customers.title')}
           </h1>
           <p className="text-sm text-(--color-text-subtle) mt-0.5">
-            {total} customer{total !== 1 ? 's' : ''}
+            {total !== 1 ? t('customers.count_plural', { count: total }) : t('customers.count', { count: total })}
           </p>
         </div>
         <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
           <Plus className="w-4 h-4" />
-          Add Customer
+          {t('customers.add')}
         </Button>
       </div>
 
@@ -158,9 +160,9 @@ export default function CustomersPage() {
             onChange={(e) => setFilterActive(e.target.value)}
             className={selectClass}
           >
-            <option value="all">All Status</option>
-            <option value="active">Active Only</option>
-            <option value="inactive">Inactive Only</option>
+            <option value="all">{t('common.all_status')}</option>
+            <option value="active">{t('common.active_only')}</option>
+            <option value="inactive">{t('common.inactive_only')}</option>
           </select>
 
           {filterActive !== 'all' && (
@@ -168,7 +170,7 @@ export default function CustomersPage() {
               onClick={() => setFilterActive('all')}
               className="text-xs text-(--color-text-subtle) hover:text-(--color-text-base) underline cursor-pointer"
             >
-              Clear filters
+              {t('common.clear_filters')}
             </button>
           )}
         </div>
@@ -184,13 +186,13 @@ export default function CustomersPage() {
           <Container className="p-3!">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-(--color-text-base)">
-                {selectedIds.size} selected
+                {t('common.selected', { count: selectedIds.size })}
               </span>
               <div className="flex items-center gap-2">
                 {selectedIds.size === 1 && (
                   <Button variant="secondary" size="sm" onClick={handleEditSelected}>
                     <Pencil className="w-3.5 h-3.5" />
-                    Edit
+                    {t('common.edit')}
                   </Button>
                 )}
                 <Button
@@ -199,7 +201,7 @@ export default function CustomersPage() {
                   onClick={() => setDeleteTarget([...selectedIds])}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Delete ({selectedIds.size})
+                  {t('common.delete')} ({selectedIds.size})
                 </Button>
               </div>
               <button
@@ -233,14 +235,14 @@ export default function CustomersPage() {
           <div className="p-8 text-center">
             <p className="text-sm text-(--color-danger)">{error}</p>
             <Button variant="secondary" size="sm" onClick={fetchData} className="mt-3">
-              Retry
+              {t('common.retry')}
             </Button>
           </div>
         ) : customers.length === 0 ? (
           <EmptyState
             icon={Users}
-            title="No customers found"
-            description="Add your first customer to get started."
+            title={t('customers.no_found')}
+            description={t('customers.no_found_desc')}
           />
         ) : (
           <>
@@ -276,23 +278,23 @@ export default function CustomersPage() {
           />
           <div className="relative bg-white rounded-lg ring-1 ring-(--color-border-base) shadow-lg w-full max-w-sm mx-4 p-5">
             <h3 className="text-base font-semibold text-(--color-text-base) mb-2">
-              Delete {deleteTarget.length === 1 ? 'Customer' : `${deleteTarget.length} Customers`}
+              {deleteTarget.length === 1 ? t('customers.delete_single') : t('customers.delete_many', { count: deleteTarget.length })}
             </h3>
             <p className="text-sm text-(--color-text-subtle) mb-5">
-              Are you sure you want to delete{' '}
+              {t('common.delete_confirm')}{' '}
               <span className="font-medium text-(--color-text-base)">
                 {deleteTarget.length === 1
                   ? customers.find((c) => c.customer_id === deleteTarget[0])?.customer_name
-                  : `${deleteTarget.length} customers`}
+                  : t('customers.delete_many_label', { count: deleteTarget.length })}
               </span>
-              ? This action cannot be undone.
+              ? {t('common.cannot_be_undone')}
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button variant="danger" onClick={handleBulkDelete}>
-                Delete
+                {t('common.delete')}
               </Button>
             </div>
           </div>

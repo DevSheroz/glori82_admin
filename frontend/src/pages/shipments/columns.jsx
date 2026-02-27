@@ -1,10 +1,4 @@
-const statusOptions = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'shipped', label: 'Shipped' },
-  { value: 'arrived', label: 'Arrived' },
-  { value: 'received', label: 'Received' },
-  { value: 'completed', label: 'Completed' },
-]
+import { useTranslation } from 'react-i18next'
 
 const statusColors = {
   pending: 'text-amber-600 bg-amber-50 ring-amber-200',
@@ -17,6 +11,16 @@ const statusColors = {
 const checkboxClass = 'rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer'
 
 export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected }) {
+  const { t } = useTranslation()
+
+  const statusOptions = [
+    { value: 'pending', label: t('shipments.status.pending') },
+    { value: 'shipped', label: t('shipments.status.shipped') },
+    { value: 'arrived', label: t('shipments.status.arrived') },
+    { value: 'received', label: t('shipments.status.received') },
+    { value: 'completed', label: t('shipments.status.completed') },
+  ]
+
   return [
     {
       key: 'select',
@@ -42,7 +46,7 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
     },
     {
       key: 'shipment_number',
-      label: 'Shipment #',
+      label: t('shipments.col_shipment_num'),
       render: (row) => (
         <button
           type="button"
@@ -58,7 +62,7 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
     },
     {
       key: 'status',
-      label: 'Status',
+      label: t('common.status'),
       render: (row) => (
         <select
           value={row.status}
@@ -80,21 +84,21 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
     },
     {
       key: 'order_count',
-      label: 'Orders',
+      label: t('shipments.col_orders'),
       render: (row) => (
         <span className="tabular-nums">{row.order_count}</span>
       ),
     },
     {
       key: 'customer_count',
-      label: 'Customers',
+      label: t('shipments.col_customers'),
       render: (row) => (
         <span className="tabular-nums">{row.customer_count}</span>
       ),
     },
     {
       key: 'total_weight_kg',
-      label: 'Weight (kg)',
+      label: t('shipments.col_weight'),
       render: (row) => (
         <span className="tabular-nums">
           {Number(row.total_weight_kg).toFixed(2)}
@@ -103,7 +107,7 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
     },
     {
       key: 'total_orders_uzs',
-      label: 'Orders (UZS)',
+      label: t('shipments.col_orders_uzs'),
       render: (row) => (
         <span className="tabular-nums">
           {Number(row.total_orders_uzs).toLocaleString()}
@@ -112,7 +116,7 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
     },
     {
       key: 'shipment_fee',
-      label: 'Fee ($)',
+      label: t('shipments.col_fee_usd'),
       render: (row) => (
         <span className="tabular-nums">
           ${Number(row.shipment_fee).toFixed(2)}
@@ -121,7 +125,7 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
     },
     {
       key: 'shipment_fee_uzs',
-      label: 'Fee (UZS)',
+      label: t('shipments.col_fee_uzs'),
       render: (row) => (
         <span className="tabular-nums">
           {Number(row.shipment_fee_uzs).toLocaleString()}
@@ -130,7 +134,7 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
     },
     {
       key: 'grand_total_uzs',
-      label: 'Grand Total (UZS)',
+      label: t('shipments.col_grand_total'),
       render: (row) => (
         <span className="tabular-nums font-medium">
           {Number(row.grand_total_uzs).toLocaleString()}
@@ -139,7 +143,7 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
     },
     {
       key: 'created_at',
-      label: 'Date',
+      label: t('common.date'),
       render: (row) => (
         <span className="text-(--color-text-subtle) tabular-nums">
           {row.created_at

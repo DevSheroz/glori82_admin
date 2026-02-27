@@ -1,4 +1,5 @@
 import { ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 
 function SortHeader({ label, sortKey, sortBy, sortDir, onSort }) {
   const active = sortBy === sortKey
@@ -18,14 +19,6 @@ function SortHeader({ label, sortKey, sortBy, sortDir, onSort }) {
   )
 }
 
-const statusOptions = [
-  { value: 'pending', label: 'Pending', variant: 'warning' },
-  { value: 'shipped', label: 'Shipped', variant: 'neutral' },
-  { value: 'arrived', label: 'Arrived', variant: 'info' },
-  { value: 'received', label: 'Received', variant: 'info' },
-  { value: 'completed', label: 'Completed', variant: 'success' },
-]
-
 const statusColors = {
   pending: 'text-amber-600 bg-amber-50 ring-amber-200',
   shipped: 'text-gray-600 bg-gray-50 ring-gray-200',
@@ -33,14 +26,6 @@ const statusColors = {
   received: 'text-blue-600 bg-blue-50 ring-blue-200',
   completed: 'text-green-600 bg-green-50 ring-green-200',
 }
-
-const paymentOptions = [
-  { value: 'unpaid', label: 'Unpaid' },
-  { value: 'paid_card', label: 'Paid (Card)' },
-  { value: 'paid_cash', label: 'Paid (Cash)' },
-  { value: 'partial', label: 'Partial' },
-  { value: 'prepayment', label: 'Prepayment' },
-]
 
 const paymentColors = {
   unpaid: 'text-red-600 bg-red-50 ring-red-200',
@@ -64,6 +49,24 @@ function uniqueList(items, key) {
 }
 
 export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected, sortBy, sortDir, onSort }) {
+  const { t } = useTranslation()
+
+  const statusOptions = [
+    { value: 'pending', label: t('orders.status.pending') },
+    { value: 'shipped', label: t('orders.status.shipped') },
+    { value: 'arrived', label: t('orders.status.arrived') },
+    { value: 'received', label: t('orders.status.received') },
+    { value: 'completed', label: t('orders.status.completed') },
+  ]
+
+  const paymentOptions = [
+    { value: 'unpaid', label: t('orders.payment.unpaid') },
+    { value: 'paid_card', label: t('orders.payment.paid_card') },
+    { value: 'paid_cash', label: t('orders.payment.paid_cash') },
+    { value: 'partial', label: t('orders.payment.partial') },
+    { value: 'prepayment', label: t('orders.payment.prepayment') },
+  ]
+
   return [
     {
       key: 'select',
@@ -89,7 +92,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'order_number',
-      label: 'Order #',
+      label: t('orders.order_num'),
       render: (row) => (
         <span className="font-medium text-(--color-text-base)">
           {row.order_number}
@@ -98,7 +101,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'customer_name',
-      label: <SortHeader label="Name" sortKey="customer_name" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
+      label: <SortHeader label={t('common.customer')} sortKey="customer_name" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       minWidth: '120px',
       render: (row) => (
         <span className="text-(--color-text-subtle)">
@@ -108,7 +111,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'category',
-      label: <SortHeader label="Category" sortKey="category_name" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
+      label: <SortHeader label={t('orders.category')} sortKey="category_name" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       minWidth: '120px',
       nowrap: false,
       render: (row) => (
@@ -119,7 +122,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'brand',
-      label: <SortHeader label="Brand" sortKey="brand" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
+      label: <SortHeader label={t('orders.brand')} sortKey="brand" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       minWidth: '110px',
       nowrap: false,
       render: (row) => (
@@ -130,7 +133,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'items',
-      label: 'Products',
+      label: t('common.items'),
       minWidth: '200px',
       nowrap: false,
       render: (row) => {
@@ -168,7 +171,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'total_price_uzs',
-      label: 'Total Price (UZS)',
+      label: t('orders.total_price_uzs'),
       minWidth: '140px',
       render: (row) => (
         row.final_amount_uzs != null ? (
@@ -187,7 +190,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'total_cost',
-      label: 'Cost (KRW)',
+      label: t('orders.cost_krw'),
       render: (row) => (
         <span className="tabular-nums">
           {row.total_cost != null
@@ -198,7 +201,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'total_selling_usd',
-      label: 'Selling (USD)',
+      label: t('orders.selling_usd'),
       minWidth: '110px',
       render: (row) => (
         <span className="tabular-nums">
@@ -208,7 +211,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'total_weight_kg',
-      label: 'Weight (kg)',
+      label: t('orders.weight_kg'),
       render: (row) => (
         <span className="tabular-nums">
           {row.total_weight_kg != null
@@ -219,7 +222,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'shipping_fee_usd',
-      label: 'Cargo ($12/kg)',
+      label: t('orders.cargo_col'),
       minWidth: '110px',
       render: (row) => (
         <span className="tabular-nums">
@@ -229,7 +232,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'customer_cargo_usd',
-      label: 'Cust. Cargo ($13/kg)',
+      label: t('orders.cust_cargo_col'),
       minWidth: '130px',
       render: (row) => (
         <span className="tabular-nums">
@@ -239,7 +242,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'status',
-      label: <SortHeader label="Status" sortKey="status" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
+      label: <SortHeader label={t('common.status')} sortKey="status" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       render: (row) => (
         <select
           value={row.status}
@@ -261,7 +264,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'payment_status',
-      label: 'Payment',
+      label: t('orders.payment_col'),
       render: (row) => (
         <select
           value={row.payment_status || 'unpaid'}
@@ -283,7 +286,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'unpaid',
-      label: 'Unpaid (UZS)',
+      label: t('orders.unpaid_uzs'),
       minWidth: '130px',
       render: (row) => (
         <div className="flex flex-col gap-0.5">
@@ -300,7 +303,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'shipping_number',
-      label: <SortHeader label="Shipping #" sortKey="shipping_number" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
+      label: <SortHeader label={t('orders.shipping_num')} sortKey="shipping_number" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       minWidth: '130px',
       render: (row) => (
         <span className="text-(--color-text-subtle)">
@@ -310,7 +313,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     },
     {
       key: 'order_date',
-      label: 'Created',
+      label: t('orders.created'),
       minWidth: '110px',
       render: (row) => (
         <span className="text-(--color-text-subtle) tabular-nums">

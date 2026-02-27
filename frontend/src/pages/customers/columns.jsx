@@ -1,8 +1,10 @@
 import Badge from '../../components/Badge'
+import { useTranslation } from 'react-i18next'
 
 const checkboxClass = 'rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer'
 
 export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelected }) {
+  const { t } = useTranslation()
   return [
     {
       key: 'select',
@@ -28,7 +30,7 @@ export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelect
     },
     {
       key: 'customer_name',
-      label: 'Name',
+      label: t('customers.col_name'),
       render: (row) => (
         <span className="font-medium text-(--color-text-base)">
           {row.customer_name}
@@ -37,7 +39,7 @@ export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelect
     },
     {
       key: 'contact_phone',
-      label: 'Phone',
+      label: t('customers.col_phone'),
       render: (row) => (
         <span className="text-(--color-text-subtle) tabular-nums">
           {row.contact_phone || '—'}
@@ -46,7 +48,7 @@ export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelect
     },
     {
       key: 'telegram_id',
-      label: 'Telegram',
+      label: t('customers.col_telegram'),
       render: (row) => (
         <span className="text-(--color-text-subtle)">
           {row.telegram_id || '—'}
@@ -55,7 +57,7 @@ export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelect
     },
     {
       key: 'address',
-      label: 'Address',
+      label: t('customers.col_address'),
       render: (row) => (
         <span className="text-(--color-text-subtle)">
           {row.address || '—'}
@@ -64,7 +66,7 @@ export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelect
     },
     {
       key: 'city',
-      label: 'City',
+      label: t('customers.col_city'),
       render: (row) => (
         <span className="text-(--color-text-subtle)">
           {row.city || '—'}
@@ -73,7 +75,7 @@ export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelect
     },
     {
       key: 'budget',
-      label: 'Budget',
+      label: t('customers.col_budget'),
       render: (row) => {
         const amount = Number(row.budget) || 0
         return amount > 0 ? (
@@ -87,12 +89,12 @@ export function getColumns({ selectedIds, onToggleSelect, onToggleAll, allSelect
     },
     {
       key: 'is_active',
-      label: 'Status',
+      label: t('common.status'),
       render: (row) =>
         row.is_active ? (
-          <Badge variant="success">Active</Badge>
+          <Badge variant="success">{t('common.active')}</Badge>
         ) : (
-          <Badge variant="neutral">Inactive</Badge>
+          <Badge variant="neutral">{t('common.inactive')}</Badge>
         ),
     },
   ]

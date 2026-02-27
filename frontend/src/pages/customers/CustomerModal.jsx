@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Modal from '../../components/Modal'
 import Button from '../../components/Button'
 
@@ -61,6 +62,7 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
   }
 
   const isEdit = !!customer
+  const { t } = useTranslation()
 
   const inputClass =
     'w-full rounded-md ring-1 ring-(--color-border-base) bg-white px-3 py-2 text-sm text-(--color-text-base) placeholder:text-(--color-text-muted) focus:outline-none focus:ring-2 focus:ring-(--color-primary) transition-shadow'
@@ -71,34 +73,34 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? 'Edit Customer' : 'Add Customer'}
+      title={isEdit ? t('customers.modal.title_edit') : t('customers.modal.title_add')}
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button variant="primary" onClick={handleSubmit} disabled={saving || !form.customer_name.trim()}>
-            {saving ? 'Saving...' : isEdit ? 'Update' : 'Create'}
+            {saving ? t('common.saving') : isEdit ? t('customers.modal.update') : t('customers.modal.create')}
           </Button>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className={labelClass}>Name *</label>
+          <label className={labelClass}>{t('customers.modal.name')}</label>
           <input
             name="customer_name"
             value={form.customer_name}
             onChange={handleChange}
             className={inputClass}
-            placeholder="Customer name"
+            placeholder={t('customers.modal.name_placeholder')}
             required
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Phone</label>
+            <label className={labelClass}>{t('customers.modal.phone')}</label>
             <input
               name="contact_phone"
               value={form.contact_phone}
@@ -108,7 +110,7 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
             />
           </div>
           <div>
-            <label className={labelClass}>Telegram ID</label>
+            <label className={labelClass}>{t('customers.modal.telegram_id')}</label>
             <input
               name="telegram_id"
               value={form.telegram_id}
@@ -121,29 +123,29 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className={labelClass}>Address</label>
+            <label className={labelClass}>{t('customers.modal.address')}</label>
             <input
               name="address"
               value={form.address}
               onChange={handleChange}
               className={inputClass}
-              placeholder="Street address"
+              placeholder={t('customers.modal.address_placeholder')}
             />
           </div>
           <div>
-            <label className={labelClass}>City</label>
+            <label className={labelClass}>{t('customers.modal.city')}</label>
             <input
               name="city"
               value={form.city}
               onChange={handleChange}
               className={inputClass}
-              placeholder="e.g. Tashkent"
+              placeholder={t('customers.modal.city_placeholder')}
             />
           </div>
         </div>
 
         <div>
-          <label className={labelClass}>Budget (UZS)</label>
+          <label className={labelClass}>{t('customers.modal.budget')}</label>
           <div className="relative">
             <input
               name="budget"
@@ -169,7 +171,7 @@ export default function CustomerModal({ open, onClose, onSave, customer, saving 
             onChange={handleChange}
             className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary)"
           />
-          <span className="text-sm text-(--color-text-base)">Active</span>
+          <span className="text-sm text-(--color-text-base)">{t('common.active')}</span>
         </label>
       </form>
     </Modal>

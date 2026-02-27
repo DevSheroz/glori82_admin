@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Plus, ShoppingCart, Pencil, Trash2, X, Package } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
 import Table from '../../components/Table'
@@ -29,25 +30,27 @@ const cardPaymentColors = {
   prepayment: 'text-purple-600 bg-purple-50 ring-purple-200',
 }
 
-const cardStatusOptions = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'shipped', label: 'Shipped' },
-  { value: 'arrived', label: 'Arrived' },
-  { value: 'received', label: 'Received' },
-  { value: 'completed', label: 'Completed' },
-]
-
-const cardPaymentOptions = [
-  { value: 'unpaid', label: 'Unpaid' },
-  { value: 'paid_card', label: 'Paid (Card)' },
-  { value: 'paid_cash', label: 'Paid (Cash)' },
-  { value: 'partial', label: 'Partial' },
-  { value: 'prepayment', label: 'Prepayment' },
-]
-
 const chevronSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`
 
 function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onStatusChange, onPaymentStatusChange }) {
+  const { t } = useTranslation()
+
+  const cardStatusOptions = [
+    { value: 'pending', label: t('orders.status.pending') },
+    { value: 'shipped', label: t('orders.status.shipped') },
+    { value: 'arrived', label: t('orders.status.arrived') },
+    { value: 'received', label: t('orders.status.received') },
+    { value: 'completed', label: t('orders.status.completed') },
+  ]
+
+  const cardPaymentOptions = [
+    { value: 'unpaid', label: t('orders.payment.unpaid') },
+    { value: 'paid_card', label: t('orders.payment.paid_card') },
+    { value: 'paid_cash', label: t('orders.payment.paid_cash') },
+    { value: 'partial', label: t('orders.payment.partial') },
+    { value: 'prepayment', label: t('orders.payment.prepayment') },
+  ]
+
   return (
     <div className={`p-4 space-y-3 transition-colors ${selected ? 'bg-blue-50/40' : ''}`}>
       {/* Row 1: checkbox + order # + date */}
@@ -106,7 +109,7 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onStatus
       {/* Row 3: amounts */}
       <div className="ml-7 flex items-center gap-5">
         <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">Total (UZS)</div>
+          <div className="text-xs text-(--color-text-muted) mb-0.5">{t('orders.total_uzs')}</div>
           {order.final_amount_uzs != null ? (
             <span className="tabular-nums font-semibold text-emerald-700 flex items-center gap-1 text-sm">
               {Number(order.final_amount_uzs).toLocaleString()}
@@ -120,7 +123,7 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onStatus
         </div>
         {order.unpaid != null && Number(order.unpaid) > 0 && (
           <div>
-            <div className="text-xs text-(--color-text-muted) mb-0.5">Unpaid</div>
+            <div className="text-xs text-(--color-text-muted) mb-0.5">{t('orders.payment.unpaid')}</div>
             <span className="tabular-nums font-semibold text-red-600 text-sm">
               {Number(order.unpaid).toLocaleString()} UZS
             </span>
@@ -187,6 +190,7 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onStatus
 }
 
 export default function OrdersPage() {
+  const { t } = useTranslation()
   const [orders, setOrders] = useState([])
   const [total, setTotal] = useState(0)
   const [customers, setCustomers] = useState([])
@@ -247,12 +251,12 @@ export default function OrdersPage() {
       setProducts(productsRes.data.data)
       setCategories(categoriesRes.data.data)
     } catch (err) {
-      setError('Failed to load data. Make sure the backend is running.')
+      setError(t('orders.failed_load'))
       console.error(err)
     } finally {
       setLoading(false)
     }
-  }, [filterStatus, filterPaymentStatus, filterCustomer, sortBy, sortDir, page])
+  }, [filterStatus, filterPaymentStatus, filterCustomer, sortBy, sortDir, page, t])
 
   useEffect(() => {
     fetchData()
@@ -290,7 +294,7 @@ export default function OrdersPage() {
       fetchData()
     } catch (err) {
       console.error('Save failed:', err)
-      alert('Failed to save order. Check the console for details.')
+      alert(t('orders.failed_save'))
     } finally {
       setSaving(false)
     }
@@ -304,7 +308,7 @@ export default function OrdersPage() {
       fetchData()
     } catch (err) {
       console.error('Delete failed:', err)
-      alert('Failed to delete orders.')
+      alert(t('orders.failed_delete'))
     }
   }
 
@@ -423,15 +427,15 @@ export default function OrdersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-lg md:text-xl font-semibold text-(--color-text-base)">
-            Orders
+            {t('orders.title')}
           </h1>
           <p className="text-sm text-(--color-text-subtle) mt-0.5">
-            {total} order{total !== 1 ? 's' : ''}
+            {total !== 1 ? t('orders.count_plural', { count: total }) : t('orders.count', { count: total })}
           </p>
         </div>
         <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
           <Plus className="w-4 h-4" />
-          Add Order
+          {t('orders.add')}
         </Button>
       </div>
 
@@ -443,12 +447,12 @@ export default function OrdersPage() {
             onChange={(e) => setFilterStatus(e.target.value)}
             className={selectClass}
           >
-            <option value="">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="shipped">Shipped</option>
-            <option value="arrived">Arrived</option>
-            <option value="received">Received</option>
-            <option value="completed">Completed</option>
+            <option value="">{t('common.all_status')}</option>
+            <option value="pending">{t('orders.status.pending')}</option>
+            <option value="shipped">{t('orders.status.shipped')}</option>
+            <option value="arrived">{t('orders.status.arrived')}</option>
+            <option value="received">{t('orders.status.received')}</option>
+            <option value="completed">{t('orders.status.completed')}</option>
           </select>
 
           <select
@@ -456,18 +460,18 @@ export default function OrdersPage() {
             onChange={(e) => setFilterPaymentStatus(e.target.value)}
             className={selectClass}
           >
-            <option value="">All Payment</option>
-            <option value="unpaid">Unpaid</option>
-            <option value="paid_card">Paid (Card)</option>
-            <option value="paid_cash">Paid (Cash)</option>
-            <option value="partial">Partial Payment</option>
-            <option value="prepayment">Prepayment</option>
+            <option value="">{t('orders.payment.all')}</option>
+            <option value="unpaid">{t('orders.payment.unpaid')}</option>
+            <option value="paid_card">{t('orders.payment.paid_card')}</option>
+            <option value="paid_cash">{t('orders.payment.paid_cash')}</option>
+            <option value="partial">{t('orders.payment.partial')}</option>
+            <option value="prepayment">{t('orders.payment.prepayment')}</option>
           </select>
 
           <SearchSelect
             value={filterCustomer}
             onChange={(val) => setFilterCustomer(val)}
-            placeholder="All Customers"
+            placeholder={t('orders.all_customers')}
             options={customers.map((c) => ({
               value: c.customer_id,
               label: c.customer_name,
@@ -483,7 +487,7 @@ export default function OrdersPage() {
               }}
               className="text-xs text-(--color-text-subtle) hover:text-(--color-text-base) underline cursor-pointer"
             >
-              Clear filters
+              {t('common.clear_filters')}
             </button>
           )}
         </div>
@@ -499,13 +503,13 @@ export default function OrdersPage() {
           <Container className="p-3!">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium text-(--color-text-base)">
-                {selectedIds.size} selected
+                {t('common.selected', { count: selectedIds.size })}
               </span>
               <div className="flex items-center gap-2">
                 {selectedIds.size === 1 && (
                   <Button variant="secondary" size="sm" onClick={handleEditSelected}>
                     <Pencil className="w-3.5 h-3.5" />
-                    Edit
+                    {t('common.edit')}
                   </Button>
                 )}
                 <Button
@@ -514,7 +518,7 @@ export default function OrdersPage() {
                   onClick={() => setDeleteTarget([...selectedIds])}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Delete ({selectedIds.size})
+                  {t('common.delete')} ({selectedIds.size})
                 </Button>
               </div>
               <button
@@ -548,14 +552,14 @@ export default function OrdersPage() {
           <div className="p-8 text-center">
             <p className="text-sm text-(--color-danger)">{error}</p>
             <Button variant="secondary" size="sm" onClick={fetchData} className="mt-3">
-              Retry
+              {t('common.retry')}
             </Button>
           </div>
         ) : orders.length === 0 ? (
           <EmptyState
             icon={ShoppingCart}
-            title="No orders found"
-            description="Create your first order to get started."
+            title={t('orders.no_found')}
+            description={t('orders.no_found_desc')}
           />
         ) : (
           <>
@@ -568,7 +572,7 @@ export default function OrdersPage() {
                   onChange={toggleAll}
                   className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
                 />
-                <span className="text-xs text-(--color-text-subtle)">Select all</span>
+                <span className="text-xs text-(--color-text-subtle)">{t('common.select_all')}</span>
               </div>
               {orders.map((order) => (
                 <OrderCard
@@ -623,7 +627,7 @@ export default function OrdersPage() {
           />
           <div className="relative bg-white rounded-lg ring-1 ring-(--color-border-base) shadow-lg w-full max-w-sm mx-4 p-5">
             <h3 className="text-base font-semibold text-(--color-text-base) mb-1">
-              {paymentPrompt.status === 'prepayment' ? 'Prepayment' : 'Partial Payment'}
+              {paymentPrompt.status === 'prepayment' ? t('orders.payment.prepayment') : t('orders.partial_payment')}
             </h3>
             <p className="text-sm text-(--color-text-subtle) mb-4">
               {paymentPrompt.orderNumber}
@@ -635,18 +639,18 @@ export default function OrdersPage() {
             </p>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-medium text-(--color-text-subtle) mb-1">Method</label>
+                <label className="block text-xs font-medium text-(--color-text-subtle) mb-1">{t('orders.method')}</label>
                 <select
                   value={paymentPrompt.method}
                   onChange={(e) => setPaymentPrompt((p) => ({ ...p, method: e.target.value }))}
                   className="w-full rounded-md ring-1 ring-(--color-border-base) bg-white px-3 py-2 text-sm text-(--color-text-base) focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
                 >
-                  <option value="card">Card</option>
-                  <option value="cash">Cash</option>
+                  <option value="card">{t('orders.card')}</option>
+                  <option value="cash">{t('orders.cash')}</option>
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-(--color-text-subtle) mb-1">Amount (UZS)</label>
+                <label className="block text-xs font-medium text-(--color-text-subtle) mb-1">{t('orders.amount_uzs')}</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -661,7 +665,7 @@ export default function OrdersPage() {
                 />
                 {paymentPrompt.total > 0 && Number(paymentPrompt.amount) > 0 && (
                   <p className="text-xs text-(--color-text-muted) mt-1">
-                    Remaining: <span className={`font-medium ${(paymentPrompt.total - Number(paymentPrompt.amount)) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {t('orders.remaining')}: <span className={`font-medium ${(paymentPrompt.total - Number(paymentPrompt.amount)) > 0 ? 'text-red-600' : 'text-green-600'}`}>
                       {Math.round(paymentPrompt.total - Number(paymentPrompt.amount)).toLocaleString()} UZS
                     </span>
                   </p>
@@ -670,10 +674,10 @@ export default function OrdersPage() {
             </div>
             <div className="flex justify-end gap-2 mt-5">
               <Button variant="secondary" onClick={() => setPaymentPrompt(null)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button variant="primary" onClick={handlePaymentPromptSave}>
-                Save
+                {t('common.save')}
               </Button>
             </div>
           </div>
@@ -689,23 +693,23 @@ export default function OrdersPage() {
           />
           <div className="relative bg-white rounded-lg ring-1 ring-(--color-border-base) shadow-lg w-full max-w-sm mx-4 p-5">
             <h3 className="text-base font-semibold text-(--color-text-base) mb-2">
-              Delete {deleteTarget.length === 1 ? 'Order' : `${deleteTarget.length} Orders`}
+              {deleteTarget.length === 1 ? t('orders.delete_single') : t('orders.delete_many', { count: deleteTarget.length })}
             </h3>
             <p className="text-sm text-(--color-text-subtle) mb-5">
-              Are you sure you want to delete{' '}
+              {t('common.delete_confirm')}{' '}
               <span className="font-medium text-(--color-text-base)">
                 {deleteTarget.length === 1
                   ? orders.find((o) => o.order_id === deleteTarget[0])?.order_number
-                  : `${deleteTarget.length} orders`}
+                  : t('orders.delete_many_label', { count: deleteTarget.length })}
               </span>
-              ? This action cannot be undone.
+              ? {t('common.cannot_be_undone')}
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={() => setDeleteTarget(null)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button variant="danger" onClick={handleBulkDelete}>
-                Delete
+                {t('common.delete')}
               </Button>
             </div>
           </div>

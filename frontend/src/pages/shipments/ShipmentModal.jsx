@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { X } from 'lucide-react'
 import Modal from '../../components/Modal'
 import Button from '../../components/Button'
@@ -19,6 +20,7 @@ export default function ShipmentModal({
   products,
   saving,
 }) {
+  const { t } = useTranslation()
   const [form, setForm] = useState(initialForm)
 
   useEffect(() => {
@@ -111,19 +113,19 @@ export default function ShipmentModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? `Edit ${shipment.shipment_number}` : 'Create Shipment'}
+      title={isEdit ? t('shipments.modal.edit', { number: shipment.shipment_number }) : t('shipments.modal.create')}
       size="lg"
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant="primary"
             onClick={handleSubmit}
             disabled={saving || (form.order_ids.length === 0 && form.stock_items.length === 0)}
           >
-            {saving ? 'Saving...' : isEdit ? 'Update' : 'Create'}
+            {saving ? t('common.saving') : t('common.save')}
           </Button>
         </>
       }
@@ -131,39 +133,39 @@ export default function ShipmentModal({
       <form onSubmit={handleSubmit} className="space-y-4">
         {isEdit && (
           <div>
-            <label className={labelClass}>Status</label>
+            <label className={labelClass}>{t('common.status')}</label>
             <select
               value={form.status}
               onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
               className={inputClass}
             >
-              <option value="pending">Pending</option>
-              <option value="shipped">Shipped</option>
-              <option value="received">Received</option>
-              <option value="completed">Completed</option>
+              <option value="pending">{t('shipments.status.pending')}</option>
+              <option value="shipped">{t('shipments.status.shipped')}</option>
+              <option value="received">{t('shipments.status.received')}</option>
+              <option value="completed">{t('shipments.status.completed')}</option>
             </select>
           </div>
         )}
 
         <div>
-          <label className={labelClass}>Notes</label>
+          <label className={labelClass}>{t('common.notes')}</label>
           <textarea
             value={form.notes}
             onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
             rows={2}
             className={inputClass}
-            placeholder="Optional notes"
+            placeholder={t('shipments.modal.notes_placeholder')}
           />
         </div>
 
         <div>
           <label className={labelClass}>
-            Select Orders ({form.order_ids.length} selected)
+            {t('shipments.modal.select_orders', { count: form.order_ids.length })}
           </label>
           <div className="max-h-60 overflow-y-auto rounded-md ring-1 ring-(--color-border-base) divide-y divide-(--color-border-base)">
             {availableOrders.length === 0 ? (
               <p className="text-sm text-(--color-text-muted) p-3 text-center">
-                No orders available
+                {t('shipments.modal.no_orders')}
               </p>
             ) : (
               availableOrders.map((order) => {
@@ -205,7 +207,7 @@ export default function ShipmentModal({
         {/* In-stock items section */}
         <div>
           <label className={labelClass}>
-            In-Stock Items ({form.stock_items.length} added)
+            {t('shipments.modal.in_stock_items', { count: form.stock_items.length })}
           </label>
           <select
             value=""
@@ -221,7 +223,7 @@ export default function ShipmentModal({
             }}
             className={inputClass}
           >
-            <option value="">Select a product to add...</option>
+            <option value="">{t('shipments.modal.select_product')}</option>
             {(products || [])
               .filter((p) => !form.stock_items.some((si) => si.product_id === p.product_id))
               .map((p) => (
@@ -251,7 +253,7 @@ export default function ShipmentModal({
                       <div className="text-xs text-(--color-text-muted)">
                         {weightKg && <span>{weightKg} kg</span>}
                         {weightKg && <span className="mx-1 opacity-40">·</span>}
-                        <span>stock: {maxQty}</span>
+                        <span>{t('shipments.modal.stock')}: {maxQty}</span>
                       </div>
                     </div>
                     <input
@@ -291,13 +293,13 @@ export default function ShipmentModal({
 
         <div className="flex items-center justify-end gap-4 pt-3 border-t border-(--color-border-base)">
           <div className="text-right">
-            <span className="text-[10px] text-(--color-text-muted) block">Total Weight</span>
+            <span className="text-[10px] text-(--color-text-muted) block">{t('shipments.modal.total_weight')}</span>
             <span className="text-sm font-semibold text-(--color-text-base) tabular-nums">
               {totalWeight.toFixed(2)} kg
             </span>
           </div>
           <div className="text-right">
-            <span className="text-[10px] text-(--color-text-muted) block">Shipment Fee</span>
+            <span className="text-[10px] text-(--color-text-muted) block">{t('shipments.modal.shipment_fee')}</span>
             <span className="text-sm font-semibold text-(--color-text-base) tabular-nums">
               ${shipmentFee.toFixed(2)}
             </span>

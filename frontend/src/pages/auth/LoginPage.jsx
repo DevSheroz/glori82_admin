@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { User, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../../contexts/AuthContext'
 
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const [userName, setUserName] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -21,7 +23,7 @@ export default function LoginPage() {
       await login(userName, password, rememberMe)
       navigate('/orders', { replace: true })
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed')
+      setError(err.response?.data?.detail || t('login.login_failed'))
     } finally {
       setSubmitting(false)
     }
@@ -36,7 +38,7 @@ export default function LoginPage() {
             glori82
           </h1>
           <p className="text-sm text-(--color-text-muted) mt-1">
-            Admin Panel
+            {t('login.admin_panel')}
           </p>
         </div>
 
@@ -47,7 +49,7 @@ export default function LoginPage() {
         >
           <div align="center">
             <h2 className="text-lg font-semibold text-(--color-text-base)">
-              Welcome back
+              {t('login.welcome_back')}
             </h2>
           </div>
 
@@ -61,7 +63,7 @@ export default function LoginPage() {
           {/* Username */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-(--color-text-base)">
-              Username
+              {t('login.username')}
             </label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--color-text-muted)" strokeWidth={2} />
@@ -69,7 +71,7 @@ export default function LoginPage() {
                 type="text"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                placeholder="Enter username"
+                placeholder={t('login.enter_username')}
                 required
                 autoFocus
                 className="w-full pl-10 pr-3 py-2.5 text-sm border border-(--color-border-base) rounded-lg outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
@@ -80,7 +82,7 @@ export default function LoginPage() {
           {/* Password */}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-(--color-text-base)">
-              Password
+              {t('login.password')}
             </label>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-(--color-text-muted)" strokeWidth={2} />
@@ -88,7 +90,7 @@ export default function LoginPage() {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
+                placeholder={t('login.enter_password')}
                 required
                 className="w-full pl-10 pr-10 py-2.5 text-sm border border-(--color-border-base) rounded-lg outline-none focus:border-(--color-primary) focus:ring-2 focus:ring-(--color-primary)/10 transition-all"
               />
@@ -114,7 +116,7 @@ export default function LoginPage() {
               onChange={(e) => setRememberMe(e.target.checked)}
               className="w-4 h-4 rounded border-gray-300 accent-(--color-primary)"
             />
-            <span className="text-sm text-(--color-text-subtle)">Remember</span>
+            <span className="text-sm text-(--color-text-subtle)">{t('login.remember')}</span>
           </label>
 
           {/* Submit */}
@@ -124,7 +126,7 @@ export default function LoginPage() {
             className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-white bg-(--color-primary) hover:bg-(--color-primary-hover) rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {submitting && <Loader2 className="w-4 h-4 animate-spin" strokeWidth={2} />}
-            {submitting ? 'Signing in...' : 'Sign in'}
+            {submitting ? t('login.signing_in') : t('login.sign_in')}
           </button>
         </form>
       </div>

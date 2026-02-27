@@ -1,49 +1,52 @@
 import { Clock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import Modal from '../../components/Modal'
 import Badge from '../../components/Badge'
 
-function getStatusBadge(status) {
-  switch (status) {
-    case 'pending':
-      return <Badge variant="warning">Pending</Badge>
-    case 'shipped':
-      return <Badge variant="neutral">Shipped</Badge>
-    case 'arrived':
-      return <Badge variant="teal">Arrived</Badge>
-    case 'received':
-      return <Badge variant="info">Received</Badge>
-    case 'completed':
-      return <Badge variant="success">Completed</Badge>
-    default:
-      return <Badge variant="neutral">{status}</Badge>
-  }
-}
-
 export default function ShipmentDetail({ open, onClose, shipment }) {
   if (!shipment) return null
+
+  const { t } = useTranslation()
+
+  function getStatusBadge(status) {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="warning">{t('shipments.status.pending')}</Badge>
+      case 'shipped':
+        return <Badge variant="neutral">{t('shipments.status.shipped')}</Badge>
+      case 'arrived':
+        return <Badge variant="teal">{t('shipments.status.arrived')}</Badge>
+      case 'received':
+        return <Badge variant="info">{t('shipments.status.received')}</Badge>
+      case 'completed':
+        return <Badge variant="success">{t('shipments.status.completed')}</Badge>
+      default:
+        return <Badge variant="neutral">{status}</Badge>
+    }
+  }
 
   return (
     <Modal open={open} onClose={onClose} title={shipment.shipment_number} size="xl">
       {/* Summary header */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
         <div>
-          <span className="text-[10px] text-(--color-text-muted) block">Status</span>
+          <span className="text-[10px] text-(--color-text-muted) block">{t('common.status')}</span>
           <div className="mt-1">{getStatusBadge(shipment.status)}</div>
         </div>
         <div>
-          <span className="text-[10px] text-(--color-text-muted) block">Total Weight</span>
+          <span className="text-[10px] text-(--color-text-muted) block">{t('shipments.detail.total_weight')}</span>
           <span className="text-sm font-semibold text-(--color-text-base) tabular-nums">
             {Number(shipment.total_weight_kg).toFixed(2)} kg
           </span>
         </div>
         <div>
-          <span className="text-[10px] text-(--color-text-muted) block">Service Fee</span>
+          <span className="text-[10px] text-(--color-text-muted) block">{t('shipments.detail.service_fee')}</span>
           <span className="text-sm font-semibold text-(--color-text-base) tabular-nums">
             ${Number(shipment.total_service_fee_usd).toFixed(2)}
           </span>
         </div>
         <div>
-          <span className="text-[10px] text-(--color-text-muted) block">Date</span>
+          <span className="text-[10px] text-(--color-text-muted) block">{t('common.date')}</span>
           <span className="text-sm text-(--color-text-base)">
             {new Date(shipment.created_at).toLocaleDateString('en-US', {
               month: 'short',
@@ -56,7 +59,7 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
 
       {shipment.notes && (
         <div className="mb-5">
-          <span className="text-[10px] text-(--color-text-muted) block mb-1">Notes</span>
+          <span className="text-[10px] text-(--color-text-muted) block mb-1">{t('common.notes')}</span>
           <p className="text-sm text-(--color-text-subtle)">{shipment.notes}</p>
         </div>
       )}
@@ -64,35 +67,35 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
       {/* Orders table */}
       <div>
         <span className="text-xs font-medium text-(--color-text-subtle) block mb-2">
-          Orders ({shipment.order_count})
+          {t('shipments.detail.orders', { count: shipment.order_count })}
         </span>
         <div className="rounded-md ring-1 ring-(--color-border-base) overflow-x-auto">
           <table className="w-full text-sm min-w-150">
             <thead>
               <tr className="border-b border-(--color-border-base) bg-(--color-bg-subtle)">
                 <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
-                  Order #
+                  {t('shipments.detail.order_num')}
                 </th>
                 <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
-                  Customer
+                  {t('common.customer')}
                 </th>
                 <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
-                  Status
+                  {t('common.status')}
                 </th>
                 <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
-                  Items
+                  {t('common.items')}
                 </th>
                 <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
-                  Selling (USD)
+                  {t('shipments.detail.selling_usd')}
                 </th>
                 <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
-                  Weight
+                  {t('common.weight')}
                 </th>
                 <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
-                  Cargo ($13/kg)
+                  {t('shipments.detail.cargo')}
                 </th>
                 <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">
-                  Total (UZS)
+                  {t('shipments.detail.total_uzs')}
                 </th>
               </tr>
             </thead>
@@ -138,17 +141,17 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
       {shipment.stock_items?.length > 0 && (
         <div className="mt-5">
           <span className="text-xs font-medium text-(--color-text-subtle) block mb-2">
-            In-Stock Items ({shipment.stock_items.length})
+            {t('shipments.detail.in_stock_items', { count: shipment.stock_items.length })}
           </span>
           <div className="rounded-md ring-1 ring-(--color-border-base) overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-(--color-border-base) bg-(--color-bg-subtle)">
-                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">Product</th>
-                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">Qty</th>
-                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">Weight</th>
-                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">Cost (KRW)</th>
-                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">Selling (USD)</th>
+                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">{t('common.product')}</th>
+                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">{t('common.qty')}</th>
+                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">{t('common.weight')}</th>
+                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">{t('shipments.detail.cost_krw')}</th>
+                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">{t('shipments.detail.selling_usd')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-(--color-border-base)">
@@ -179,7 +182,7 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
       {shipment.history?.length > 0 && (
         <div className="mt-5">
           <span className="text-xs font-medium text-(--color-text-subtle) block mb-3">
-            History
+            {t('shipments.detail.history')}
           </span>
           <div>
             {shipment.history.map((entry, idx) => (

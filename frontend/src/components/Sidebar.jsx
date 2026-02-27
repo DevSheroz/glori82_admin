@@ -10,20 +10,22 @@ import {
   Menu,
   LogOut,
 } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/inventory', label: 'Inventory', icon: Package },
-  { to: '/orders', label: 'Orders', icon: ShoppingCart },
-  { to: '/customers', label: 'Customers', icon: Users },
-  { to: '/categories', label: 'Categories', icon: FolderTree },
-  { to: '/shipments', label: 'Shipments', icon: Truck },
+  { to: '/dashboard', key: 'nav.dashboard', icon: LayoutDashboard },
+  { to: '/inventory', key: 'nav.inventory', icon: Package },
+  { to: '/orders', key: 'nav.orders', icon: ShoppingCart },
+  { to: '/customers', key: 'nav.customers', icon: Users },
+  { to: '/categories', key: 'nav.categories', icon: FolderTree },
+  { to: '/shipments', key: 'nav.shipments', icon: Truck },
 ]
 
 export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const handleLogout = () => {
     logout()
@@ -61,7 +63,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
             key={item.to}
             to={item.to}
             onClick={onMobileClose}
-            title={isCollapsed ? item.label : undefined}
+            title={isCollapsed ? t(item.key) : undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium overflow-hidden whitespace-nowrap transition-colors ${
                 isActive
@@ -71,12 +73,13 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
             }
           >
             <item.icon className="w-4 h-4 shrink-0" strokeWidth={2} />
-            {item.label}
+            {!isCollapsed && t(item.key)}
           </NavLink>
         ))}
       </nav>
       {user && (
-        <div className="border-t border-(--color-border-base) px-3 py-3">
+        <div className="border-t border-(--color-border-base) px-3 py-3 space-y-2">
+          {/* User row */}
           <div className={`flex items-center gap-3 ${isCollapsed ? 'justify-center' : ''}`}>
             <div className="w-8 h-8 rounded-full bg-(--color-bg-component) flex items-center justify-center shrink-0">
               <span className="text-xs font-medium text-(--color-text-subtle)">
@@ -92,7 +95,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
             {!isCollapsed && (
               <button
                 onClick={handleLogout}
-                title="Logout"
+                title={t('common.logout')}
                 className="p-1.5 rounded-md text-(--color-text-muted) hover:text-(--color-danger) hover:bg-(--color-bg-subtle) transition-colors"
               >
                 <LogOut className="w-4 h-4" strokeWidth={2} />
@@ -102,8 +105,8 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
           {isCollapsed && (
             <button
               onClick={handleLogout}
-              title="Logout"
-              className="mt-2 w-full flex justify-center p-1.5 rounded-md text-(--color-text-muted) hover:text-(--color-danger) hover:bg-(--color-bg-subtle) transition-colors"
+              title={t('common.logout')}
+              className="w-full flex justify-center p-1.5 rounded-md text-(--color-text-muted) hover:text-(--color-danger) hover:bg-(--color-bg-subtle) transition-colors"
             >
               <LogOut className="w-4 h-4" strokeWidth={2} />
             </button>

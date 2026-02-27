@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import Modal from '../../components/Modal'
 import Button from '../../components/Button'
-
-const STOCK_STATUSES = [
-  { value: 'in_stock', label: 'In Stock' },
-  { value: 'out_of_stock', label: 'Out of Stock' },
-  { value: 'pre_order', label: 'Pre-order' },
-]
 
 const initialForm = {
   product_name: '',
@@ -32,8 +27,15 @@ export default function ProductModal({
   categories,
   saving,
 }) {
+  const { t } = useTranslation()
   const [form, setForm] = useState(initialForm)
   const [attrValues, setAttrValues] = useState({})
+
+  const stockStatuses = [
+    { value: 'in_stock', label: t('inventory.stock_status.in_stock') },
+    { value: 'out_of_stock', label: t('inventory.stock_status.out_of_stock') },
+    { value: 'pre_order', label: t('inventory.stock_status.pre_order') },
+  ]
 
   useEffect(() => {
     if (product) {
@@ -116,37 +118,37 @@ export default function ProductModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={isEdit ? 'Edit Product' : 'Add Product'}
+      title={isEdit ? t('inventory.modal.edit') : t('inventory.modal.add')}
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={saving}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button
             variant="primary"
             onClick={handleSubmit}
             disabled={saving || !form.product_name}
           >
-            {saving ? 'Saving...' : isEdit ? 'Update' : 'Create'}
+            {saving ? t('common.saving') : isEdit ? t('inventory.modal.update') : t('inventory.modal.create')}
           </Button>
         </>
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className={labelClass}>Product Name *</label>
+          <label className={labelClass}>{t('inventory.modal.product_name')}</label>
           <input
             name="product_name"
             value={form.product_name}
             onChange={handleChange}
             className={inputClass}
-            placeholder="Enter product name"
+            placeholder={t('inventory.modal.product_name_placeholder')}
             required
           />
         </div>
 
         <div>
-          <label className={labelClass}>Brand</label>
+          <label className={labelClass}>{t('inventory.modal.brand')}</label>
           <input
             name="brand"
             value={form.brand}
@@ -157,14 +159,14 @@ export default function ProductModal({
         </div>
 
         <div>
-          <label className={labelClass}>Category</label>
+          <label className={labelClass}>{t('inventory.modal.category')}</label>
           <select
             name="category_id"
             value={form.category_id}
             onChange={handleChange}
             className={inputClass}
           >
-            <option value="">None</option>
+            <option value="">{t('inventory.modal.none')}</option>
             {categories.map((c) => (
               <option key={c.category_id} value={c.category_id}>
                 {c.category_name}
@@ -175,7 +177,7 @@ export default function ProductModal({
 
         {categoryAttributes.length > 0 && (
           <div>
-            <label className={labelClass}>Attributes</label>
+            <label className={labelClass}>{t('inventory.modal.attributes')}</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {categoryAttributes.map((attr) => (
                 <div key={attr.attribute_id}>
@@ -193,20 +195,20 @@ export default function ProductModal({
         )}
 
         <div>
-          <label className={labelClass}>Description</label>
+          <label className={labelClass}>{t('inventory.modal.description')}</label>
           <textarea
             name="description"
             value={form.description}
             onChange={handleChange}
             rows={2}
             className={inputClass}
-            placeholder="Optional description"
+            placeholder={t('inventory.modal.description_placeholder')}
           />
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div>
-            <label className={labelClass}>Cost Price (KRW)</label>
+            <label className={labelClass}>{t('inventory.modal.cost_price')}</label>
             <input
               name="cost_price"
               type="number"
@@ -219,7 +221,7 @@ export default function ProductModal({
             />
           </div>
           <div>
-            <label className={labelClass}>Price (USD)</label>
+            <label className={labelClass}>{t('inventory.modal.price_usd')}</label>
             <input
               name="selling_price"
               type="number"
@@ -232,7 +234,7 @@ export default function ProductModal({
             />
           </div>
           <div>
-            <label className={labelClass}>Price (UZS)</label>
+            <label className={labelClass}>{t('inventory.modal.price_uzs')}</label>
             <input
               name="selling_price_uzs"
               type="number"
@@ -248,7 +250,7 @@ export default function ProductModal({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
-            <label className={labelClass}>Weight (g)</label>
+            <label className={labelClass}>{t('inventory.modal.weight_g')}</label>
             <input
               name="packaged_weight_grams"
               type="number"
@@ -260,7 +262,7 @@ export default function ProductModal({
             />
           </div>
           <div>
-            <label className={labelClass}>Volume (ml)</label>
+            <label className={labelClass}>{t('inventory.modal.volume_ml')}</label>
             <input
               name="volume_ml"
               type="number"
@@ -275,7 +277,7 @@ export default function ProductModal({
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div>
-            <label className={labelClass}>Stock Quantity</label>
+            <label className={labelClass}>{t('inventory.modal.stock_qty')}</label>
             <input
               name="stock_quantity"
               type="number"
@@ -287,7 +289,7 @@ export default function ProductModal({
             />
           </div>
           <div>
-            <label className={labelClass}>Reorder Level</label>
+            <label className={labelClass}>{t('inventory.modal.reorder_level')}</label>
             <input
               name="reorder_level"
               type="number"
@@ -299,14 +301,14 @@ export default function ProductModal({
             />
           </div>
           <div>
-            <label className={labelClass}>Stock Status</label>
+            <label className={labelClass}>{t('inventory.modal.stock_status')}</label>
             <select
               name="stock_status"
               value={form.stock_status}
               onChange={handleChange}
               className={inputClass}
             >
-              {STOCK_STATUSES.map((s) => (
+              {stockStatuses.map((s) => (
                 <option key={s.value} value={s.value}>
                   {s.label}
                 </option>
@@ -328,7 +330,7 @@ export default function ProductModal({
             htmlFor="is_active"
             className="text-sm text-(--color-text-base)"
           >
-            Active
+            {t('inventory.modal.active')}
           </label>
         </div>
       </form>
