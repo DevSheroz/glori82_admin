@@ -45,8 +45,9 @@ async def get_orders(
     sort_dir: str = "asc",
     page: int = 1,
     page_size: int = 20,
+    is_archived: bool = False,
 ) -> tuple[list[Order], int]:
-    base = select(Order)
+    base = select(Order).where(Order.is_archived == is_archived)
     if status is not None:
         base = base.where(Order.status == status)
     if payment_status is not None:

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Plus, ShoppingCart, Pencil, Trash2, X, Package } from 'lucide-react'
+import { Plus, ShoppingCart, Pencil, Trash2, X, Package, Archive } from 'lucide-react'
+import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
@@ -32,7 +33,7 @@ const cardPaymentColors = {
 
 const chevronSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`
 
-function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onStatusChange, onPaymentStatusChange }) {
+function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchive, onStatusChange, onPaymentStatusChange }) {
   const { t } = useTranslation()
 
   const cardStatusOptions = [
@@ -177,6 +178,14 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onStatus
           >
             <Pencil className="w-3.5 h-3.5" />
           </button>
+          {order.status === 'completed' && ['paid_card', 'paid_cash'].includes(order.payment_status) && (
+            <button
+              onClick={onArchive}
+              className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-amber-600 hover:bg-amber-50 transition-colors"
+            >
+              <Archive className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             onClick={onDelete}
             className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
@@ -230,7 +239,7 @@ export default function OrdersPage() {
     if (!silent) setLoading(true)
     setError(null)
     try {
-      const params = { page, page_size: PAGE_SIZE }
+      const params = { page, page_size: PAGE_SIZE, is_archived: false }
       if (filterStatus) params.status = filterStatus
       if (filterPaymentStatus) params.payment_status = filterPaymentStatus
       if (filterCustomer) params.customer_id = filterCustomer
@@ -294,10 +303,10 @@ export default function OrdersPage() {
       }
       setModalOpen(false)
       setEditingOrder(null)
-      fetchData()
+      await fetchData()
     } catch (err) {
       console.error('Save failed:', err)
-      alert(t('orders.failed_save'))
+      toast.error(t('orders.failed_save'))
     } finally {
       setSaving(false)
     }
@@ -308,10 +317,31 @@ export default function OrdersPage() {
     try {
       await Promise.all(deleteTarget.map((id) => ordersApi.delete(id)))
       setDeleteTarget(null)
-      fetchData()
+      await fetchData()
+      toast.success(t('orders.deleted_success'))
     } catch (err) {
       console.error('Delete failed:', err)
-      alert(t('orders.failed_delete'))
+      toast.error(t('orders.failed_delete'))
+    }
+  }
+
+  const handleArchive = async (ids) => {
+    const eligible = ids.filter((id) => {
+      const o = orders.find((o) => o.order_id === id)
+      return o && o.status === 'completed' && ['paid_card', 'paid_cash'].includes(o.payment_status)
+    })
+    if (eligible.length === 0) {
+      toast.warning(t('orders.archive_only_completed'))
+      return
+    }
+    try {
+      await Promise.all(eligible.map((id) => ordersApi.update(id, { is_archived: true })))
+      setSelectedIds(new Set())
+      await fetchData()
+      toast.success(t('orders.archived_success'))
+    } catch (err) {
+      console.error('Archive failed:', err)
+      toast.error(t('orders.failed_archive'))
     }
   }
 
@@ -408,6 +438,11 @@ export default function OrdersPage() {
       setSelectedIds(new Set(orders.map((o) => o.order_id)))
     }
   }
+
+  const canArchive = selectedIds.size > 0 && [...selectedIds].every((id) => {
+    const o = orders.find((o) => o.order_id === id)
+    return o && o.status === 'completed' && ['paid_card', 'paid_cash'].includes(o.payment_status)
+  })
 
   const columns = getColumns({
     onStatusChange: handleStatusChange,
@@ -516,6 +551,16 @@ export default function OrdersPage() {
                   </Button>
                 )}
                 <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => handleArchive([...selectedIds])}
+                  disabled={!canArchive}
+                  title={!canArchive ? t('orders.archive_only_completed') : undefined}
+                >
+                  <Archive className="w-3.5 h-3.5" />
+                  {t('orders.archive')} ({selectedIds.size})
+                </Button>
+                <Button
                   variant="danger"
                   size="sm"
                   onClick={() => setDeleteTarget([...selectedIds])}
@@ -585,6 +630,7 @@ export default function OrdersPage() {
                   onToggleSelect={toggleSelect}
                   onEdit={() => { setEditingOrder(order); setModalOpen(true) }}
                   onDelete={() => setDeleteTarget([order.order_id])}
+                  onArchive={() => handleArchive([order.order_id])}
                   onStatusChange={handleStatusChange}
                   onPaymentStatusChange={handlePaymentStatusChange}
                 />

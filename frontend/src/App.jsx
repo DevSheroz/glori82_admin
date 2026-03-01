@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'sonner'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/Layout'
 import LoginPage from './pages/auth/LoginPage'
 import InventoryPage from './pages/inventory/InventoryPage'
 import OrdersPage from './pages/orders/OrdersPage'
+import ArchivedOrdersPage from './pages/orders/ArchivedOrdersPage'
 import CustomersPage from './pages/customers/CustomersPage'
 import CategoriesPage from './pages/categories/CategoriesPage'
 import ShipmentsPage from './pages/shipments/ShipmentsPage'
@@ -13,6 +15,7 @@ import DashboardPage from './pages/dashboard/DashboardPage'
 export default function App() {
   return (
     <BrowserRouter>
+      <Toaster position="top-right" richColors />
       <AuthProvider>
         <Routes>
           <Route path="login" element={<LoginPage />} />
@@ -22,6 +25,7 @@ export default function App() {
               <Route path="inventory" element={<InventoryPage />} />
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="orders" element={<OrdersPage />} />
+              <Route path="archived" element={<ArchivedOrdersPage />} />
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipments" element={<ShipmentsPage />} />

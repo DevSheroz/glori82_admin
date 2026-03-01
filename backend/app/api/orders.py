@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.models.order import Order
 from app.schemas.order import OrderCreate, OrderResponse, OrderUpdate
 from app.schemas.pagination import PaginatedResponse
 from app.services import order as order_service
@@ -42,6 +43,7 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
         }
         for item in order.items
     ]
+    is_archived = order.is_archived
     total_cost = sum(
         (it["cost_price"] or 0) * it["quantity"]
         for it in items
@@ -129,6 +131,7 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
         "unpaid": unpaid,
         "final_amount_uzs": order.final_amount_uzs,
         "customer_name": order.customer.customer_name if order.customer else None,
+        "is_archived": is_archived,
         "items": items,
     }
 
@@ -152,6 +155,7 @@ async def list_orders(
     sort_dir: str = "asc",
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    is_archived: bool = False,
     db: AsyncSession = Depends(get_db),
 ):
     orders, total = await order_service.get_orders(
@@ -165,6 +169,7 @@ async def list_orders(
         sort_dir=sort_dir,
         page=page,
         page_size=page_size,
+        is_archived=is_archived,
     )
     rate = await _usd_to_uzs_rate()
     return PaginatedResponse(
@@ -193,6 +198,12 @@ async def create_order(data: OrderCreate, db: AsyncSession = Depends(get_db)):
 
 @router.put("/{order_id}", response_model=OrderResponse)
 async def update_order(order_id: int, data: OrderUpdate, db: AsyncSession = Depends(get_db)):
+    if data.is_archived is True:
+        existing = await db.get(Order, order_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail="Order not found")
+        if existing.status != "completed" or existing.payment_status not in ("paid_card", "paid_cash"):
+            raise HTTPException(status_code=400, detail="Only completed and fully paid orders can be archived")
     order = await order_service.update_order(db, order_id, data)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")

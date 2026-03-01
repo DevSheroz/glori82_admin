@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  Archive,
   Users,
   FolderTree,
   Truck,
@@ -77,6 +78,25 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
           </NavLink>
         ))}
       </nav>
+      {user && (
+        <div className="px-3 pb-2">
+          <NavLink
+            to="/archived"
+            onClick={onMobileClose}
+            title={isCollapsed ? t('nav.archived') : undefined}
+            className={({ isActive }) =>
+              `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium overflow-hidden whitespace-nowrap transition-colors ${
+                isActive
+                  ? 'bg-(--color-bg-component) text-(--color-text-base)'
+                  : 'text-(--color-text-subtle) hover:bg-(--color-bg-subtle) hover:text-(--color-text-base)'
+              }`
+            }
+          >
+            <Archive className="w-4 h-4 shrink-0" strokeWidth={2} />
+            {!isCollapsed && t('nav.archived')}
+          </NavLink>
+        </div>
+      )}
       {user && (
         <div className="border-t border-(--color-border-base) px-3 py-3 space-y-2">
           {/* User row */}
