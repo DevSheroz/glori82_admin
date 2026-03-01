@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
-StockStatus = Literal["in_stock", "out_of_stock", "pre_order"]
+StockStatus = Literal["in_stock", "out_of_stock", "pre_order", "purchased"]
 
 from app.schemas.category_attribute import ProductAttributeValueCreate, ProductAttributeValueResponse
 
@@ -20,7 +20,7 @@ class ProductBase(BaseModel):
     volume_ml: int | None = None
     stock_quantity: int = 0
     reorder_level: int = 0
-    stock_status: StockStatus = "in_stock"
+    stock_status: StockStatus = "purchased"
     is_active: bool = True
 
 

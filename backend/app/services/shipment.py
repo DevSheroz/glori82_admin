@@ -255,7 +255,7 @@ async def update_shipment(
     old_notes = shipment.notes
     old_order_ids = {so.order_id for so in shipment.shipment_orders}
 
-    fields = data.model_dump(exclude_unset=True, exclude={"order_ids"})
+    fields = data.model_dump(exclude_unset=True, exclude={"order_ids", "stock_items"})
     for key, value in fields.items():
         setattr(shipment, key, value)
 
@@ -279,6 +279,16 @@ async def update_shipment(
             )
             for order in orders_result.scalars().all():
                 order.status = fields["status"]
+
+        # When shipment arrives, mark all stock items' products as in_stock
+        if fields["status"] == "arrived":
+            stock_product_ids = [si.product_id for si in shipment.stock_items]
+            if stock_product_ids:
+                products_result = await db.execute(
+                    select(Product).where(Product.product_id.in_(stock_product_ids))
+                )
+                for product in products_result.scalars().all():
+                    product.stock_status = "in_stock"
 
     if data.order_ids is not None:
         new_order_ids = set(data.order_ids)

@@ -75,27 +75,16 @@ async def get_products(
             .join(Shipment, ShipmentStockItem.shipment_id == Shipment.shipment_id)
             .where(
                 ShipmentStockItem.product_id.in_(product_ids),
-                Shipment.status.in_(["pending", "shipped", "arrived"]),
+                Shipment.status.in_(["pending", "shipped"]),
             )
             .group_by(ShipmentStockItem.product_id)
         )
         in_shipment_map = {row[0]: int(row[1]) for row in in_shipment_result.all()}
 
-        sent_result = await db.execute(
-            select(ShipmentStockItem.product_id, func.coalesce(func.sum(ShipmentStockItem.quantity), 0))
-            .join(Shipment, ShipmentStockItem.shipment_id == Shipment.shipment_id)
-            .where(
-                ShipmentStockItem.product_id.in_(product_ids),
-                Shipment.status.in_(["received", "completed"]),
-            )
-            .group_by(ShipmentStockItem.product_id)
-        )
-        sent_map = {row[0]: int(row[1]) for row in sent_result.all()}
-
         for p in products:
             p.times_ordered = counts_map.get(p.product_id, 0)
             p.in_shipment_qty = in_shipment_map.get(p.product_id, 0)
-            p.sent_qty = sent_map.get(p.product_id, 0)
+            p.sent_qty = 0
 
     return products, total
 
@@ -119,20 +108,11 @@ async def get_product(db: AsyncSession, product_id: int) -> Product | None:
             .join(Shipment, ShipmentStockItem.shipment_id == Shipment.shipment_id)
             .where(
                 ShipmentStockItem.product_id == product_id,
-                Shipment.status.in_(["pending", "shipped", "arrived"]),
+                Shipment.status.in_(["pending", "shipped"]),
             )
         )
         product.in_shipment_qty = int(in_shipment_result.scalar() or 0)
-
-        sent_result = await db.execute(
-            select(func.coalesce(func.sum(ShipmentStockItem.quantity), 0))
-            .join(Shipment, ShipmentStockItem.shipment_id == Shipment.shipment_id)
-            .where(
-                ShipmentStockItem.product_id == product_id,
-                Shipment.status.in_(["received", "completed"]),
-            )
-        )
-        product.sent_qty = int(sent_result.scalar() or 0)
+        product.sent_qty = 0
     return product
 
 
