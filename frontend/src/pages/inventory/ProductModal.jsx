@@ -15,7 +15,7 @@ const initialForm = {
   volume_ml: '',
   stock_quantity: '',
   reorder_level: '',
-  stock_status: 'in_stock',
+  stock_status: 'purchased',
   is_active: true,
 }
 
@@ -32,6 +32,7 @@ export default function ProductModal({
   const [attrValues, setAttrValues] = useState({})
 
   const stockStatuses = [
+    { value: 'purchased', label: t('inventory.stock_status.purchased') },
     { value: 'in_stock', label: t('inventory.stock_status.in_stock') },
     { value: 'out_of_stock', label: t('inventory.stock_status.out_of_stock') },
     { value: 'pre_order', label: t('inventory.stock_status.pre_order') },

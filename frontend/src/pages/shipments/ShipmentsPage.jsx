@@ -160,7 +160,7 @@ export default function ShipmentsPage() {
       const [shipmentsRes, ordersRes, productsRes] = await Promise.all([
         shipmentsApi.getAll(params),
         ordersApi.getAll({ page_size: 100, status: 'pending' }),
-        productsApi.getAll({ page_size: 100, is_active: true, stock_status: 'in_stock' }),
+        productsApi.getAll({ page_size: 100, is_active: true, stock_status: 'purchased' }),
       ])
       setShipments(shipmentsRes.data.data)
       setTotal(shipmentsRes.data.total)

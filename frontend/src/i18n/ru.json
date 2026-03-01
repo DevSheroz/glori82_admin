@@ -133,7 +133,8 @@
     "stock_status": {
       "in_stock": "В наличии",
       "out_of_stock": "Нет в наличии",
-      "pre_order": "Предзаказ"
+      "pre_order": "Предзаказ",
+      "purchased": "Закуплено"
     },
     "in_shipment": "В пути ×{{qty}}",
     "sent": "Отправлено ×{{qty}}",

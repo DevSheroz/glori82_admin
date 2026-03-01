@@ -35,6 +35,9 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
   } else if (product.stock_status === 'pre_order') {
     stockBadgeClass = 'text-amber-600 bg-amber-50 ring-1 ring-amber-200'
     stockLabel = t('inventory.stock_status.pre_order')
+  } else if (product.stock_status === 'purchased') {
+    stockBadgeClass = 'text-gray-600 bg-gray-50 ring-1 ring-gray-200'
+    stockLabel = t('inventory.stock_status.purchased')
   }
 
   return (
@@ -58,11 +61,6 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
               {product.in_shipment_qty > 0 && (
                 <span className="text-xs font-medium px-2 py-0.5 rounded-full text-blue-600 bg-blue-50 ring-1 ring-blue-200">
                   {t('inventory.in_shipment', { qty: product.in_shipment_qty })}
-                </span>
-              )}
-              {product.sent_qty > 0 && (
-                <span className="text-xs font-medium px-2 py-0.5 rounded-full text-green-700 bg-green-50 ring-1 ring-green-200">
-                  {t('inventory.sent', { qty: product.sent_qty })}
                 </span>
               )}
             </div>

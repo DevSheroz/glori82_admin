@@ -28,6 +28,8 @@ function getStockBadge(row, t) {
       return <Badge variant="danger">{t('inventory.stock_status.out_of_stock')}</Badge>
     case 'pre_order':
       return <Badge variant="warning">{t('inventory.stock_status.pre_order')}</Badge>
+    case 'purchased':
+      return <Badge variant="neutral">{t('inventory.stock_status.purchased')}</Badge>
     default:
       return <Badge variant="success">{t('inventory.stock_status.in_stock')}</Badge>
   }
@@ -207,9 +209,6 @@ export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, sele
           {getStockBadge(row, t)}
           {row.in_shipment_qty > 0 && (
             <Badge variant="info">{t('inventory.in_shipment', { qty: row.in_shipment_qty })}</Badge>
-          )}
-          {row.sent_qty > 0 && (
-            <Badge variant="success">{t('inventory.sent', { qty: row.sent_qty })}</Badge>
           )}
         </div>
       ),

@@ -133,7 +133,8 @@
     "stock_status": {
       "in_stock": "In Stock",
       "out_of_stock": "Out of Stock",
-      "pre_order": "Pre-order"
+      "pre_order": "Pre-order",
+      "purchased": "Purchased"
     },
     "in_shipment": "In Shipment ×{{qty}}",
     "sent": "Sent ×{{qty}}",
