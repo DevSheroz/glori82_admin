@@ -66,6 +66,7 @@ const blankItem = {
   cargo: '',
   customer_cargo: '',
   attribute_values: [],
+  from_stock: false,
 }
 
 const initialForm = {
@@ -92,6 +93,7 @@ export default function OrderModal({
   order,
   customers,
   products,
+  stockProducts,
   categories,
   saving,
 }) {
@@ -100,6 +102,8 @@ export default function OrderModal({
   const [krwToUsd, setKrwToUsd] = useState(0)
   const [usdToUzs, setUsdToUzs] = useState(0)
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false)
+  const [pendingStockId, setPendingStockId] = useState('')
+  const [pendingStockQty, setPendingStockQty] = useState(1)
   const customerRef = useRef(null)
 
   useEffect(() => {
@@ -123,6 +127,12 @@ export default function OrderModal({
     for (const p of products) map[p.product_id] = p
     return map
   }, [products])
+
+  const stockProductMap = useMemo(() => {
+    const map = {}
+    for (const p of (stockProducts || [])) map[p.product_id] = p
+    return map
+  }, [stockProducts])
 
   const customerMap = useMemo(() => {
     const map = {}
@@ -173,7 +183,7 @@ export default function OrderModal({
       const items =
         order.items && order.items.length > 0
           ? order.items.map((it) => {
-              const product = productMap[it.product_id]
+              const product = productMap[it.product_id] || stockProductMap[it.product_id]
               const weightGrams = it.packaged_weight_grams || product?.packaged_weight_grams || 0
               const qty = it.quantity ?? 1
               const totalWeightKg = weightGrams ? (weightGrams / 1000) * qty : 0
@@ -195,6 +205,7 @@ export default function OrderModal({
                   attribute_name: av.attribute_name,
                   value: av.value,
                 })),
+                from_stock: it.from_stock || false,
               }
             })
           : [{ ...blankItem }]
@@ -241,8 +252,10 @@ export default function OrderModal({
     } else {
       setForm({ ...initialForm, items: [{ ...blankItem }] })
       setRowOptions({})
+      setPendingStockId('')
+      setPendingStockQty(1)
     }
-  }, [order, open, productMap, customerMap, fetchBrands, fetchProducts])
+  }, [order, open, productMap, stockProductMap, customerMap, fetchBrands, fetchProducts])
 
   /* ── Customer handlers ── */
   const handleCustomerNameChange = (e) => {
@@ -479,6 +492,39 @@ export default function OrderModal({
     })
   }
 
+  /* ── From Stock handler ── */
+  const addFromStockItem = () => {
+    if (!pendingStockId) return
+    const product = stockProductMap[Number(pendingStockId)]
+    if (!product) return
+    const qty = Math.min(Math.max(1, Number(pendingStockQty) || 1), product.stock_quantity || 999)
+    const weightGrams = product.packaged_weight_grams || 0
+    const totalKg = (weightGrams / 1000) * qty
+    const newItem = {
+      category_id: product.category_id ?? '',
+      category_name: product.category?.category_name || '',
+      brand: product.brand ?? '',
+      product_id: product.product_id,
+      product_name: product.product_name,
+      quantity: qty,
+      cost_price: product.cost_price ?? '',
+      selling_price: product.selling_price ?? '',
+      selling_price_uzs: product.selling_price_uzs ?? '',
+      weight_grams: weightGrams || '',
+      cargo: totalKg ? (totalKg * 12).toFixed(2) : '',
+      customer_cargo: totalKg ? (totalKg * 13).toFixed(2) : '',
+      attribute_values: (product.attribute_values || []).map((av) => ({
+        attribute_id: av.attribute_id,
+        attribute_name: av.attribute_name,
+        value: av.value,
+      })),
+      from_stock: true,
+    }
+    setForm((prev) => ({ ...prev, items: [...prev.items, newItem] }))
+    setPendingStockId('')
+    setPendingStockQty(1)
+  }
+
   /* ── Computed totals ── */
   const totals = useMemo(() => {
     let totalSelling = 0
@@ -540,6 +586,7 @@ export default function OrderModal({
           selling_price_uzs: it.selling_price_uzs ? Number(it.selling_price_uzs) : null,
           cost_price: it.cost_price ? Number(it.cost_price) : null,
           packaged_weight_grams: it.weight_grams ? Number(it.weight_grams) : null,
+          from_stock: it.from_stock || false,
           attribute_values: (it.attribute_values || [])
             .filter((av) => av.value)
             .map((av) => ({ attribute_id: av.attribute_id, value: av.value })),
@@ -748,6 +795,49 @@ export default function OrderModal({
           <textarea name="notes" value={form.notes} onChange={handleChange} rows={2} className={inputClass} placeholder={t('orders.modal.notes_placeholder')} />
         </div>
 
+        {/* From Stock Picker */}
+        {(stockProducts || []).length > 0 && (
+          <div>
+            <h3 className="text-xs font-semibold text-(--color-text-base) uppercase tracking-wider mb-2">
+              {t('orders.modal.section_from_stock')}
+            </h3>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <select
+                  value={pendingStockId}
+                  onChange={(e) => { setPendingStockId(e.target.value); setPendingStockQty(1) }}
+                  className={inputClass}
+                >
+                  <option value="">{t('orders.modal.from_stock_placeholder')}</option>
+                  {(stockProducts || []).map((p) => (
+                    <option key={p.product_id} value={p.product_id}>
+                      {p.product_name} — {t('orders.modal.from_stock_available', { qty: p.stock_quantity })}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="w-20 shrink-0">
+                <input
+                  type="number"
+                  min="1"
+                  max={pendingStockId ? (stockProductMap[Number(pendingStockId)]?.stock_quantity || 999) : 999}
+                  value={pendingStockQty}
+                  onChange={(e) => setPendingStockQty(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={addFromStockItem}
+                disabled={!pendingStockId}
+                className="shrink-0 inline-flex items-center gap-1 px-3 py-2 rounded-md text-sm font-medium bg-(--color-primary) text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-opacity cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Items Section */}
         <div>
           <h3 className="text-xs font-semibold text-(--color-text-base) uppercase tracking-wider mb-2">{t('orders.modal.section_items')}</h3>
@@ -759,10 +849,17 @@ export default function OrderModal({
               return (
                 <div
                   key={index}
-                  className="relative p-3 rounded-md bg-(--color-bg-subtle) ring-1 ring-(--color-border-base)"
+                  className={`relative p-3 rounded-md ring-1 ${item.from_stock ? 'bg-emerald-50 ring-emerald-300' : 'bg-(--color-bg-subtle) ring-(--color-border-base)'}`}
                 >
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-medium text-(--color-text-subtle)">{t('orders.modal.item_label', { number: index + 1 })}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-(--color-text-subtle)">{t('orders.modal.item_label', { number: index + 1 })}</span>
+                      {item.from_stock && (
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 ring-1 ring-emerald-300 px-1.5 py-0.5 rounded">
+                          {t('orders.modal.section_from_stock')}
+                        </span>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={() => removeItem(index)}

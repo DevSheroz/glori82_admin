@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from sqlalchemy import ForeignKey, Integer, Numeric
+from sqlalchemy import Boolean, ForeignKey, Integer, Numeric
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -16,6 +16,7 @@ class OrderItem(Base):
     selling_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     selling_price_uzs: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
     cost_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    from_stock: Mapped[bool] = mapped_column(Boolean, server_default="false")
 
     order: Mapped["Order"] = relationship(back_populates="items")
     product: Mapped["Product | None"] = relationship(back_populates="order_items")

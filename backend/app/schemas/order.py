@@ -16,6 +16,7 @@ class OrderItemBase(BaseModel):
     selling_price: Decimal | None = None
     selling_price_uzs: Decimal | None = None
     cost_price: Decimal | None = None
+    from_stock: bool = False
 
 
 class OrderItemCreate(OrderItemBase):

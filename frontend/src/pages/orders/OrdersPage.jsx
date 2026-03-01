@@ -85,7 +85,7 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onStatus
       {order.items && order.items.length > 0 && (
         <div className="ml-7 space-y-1">
           {order.items.map((it, i) => {
-            const inStock = it.stock_status && it.stock_status !== 'pre_order'
+            const inStock = it.from_stock === true
             return (
               <div
                 key={it.item_id ?? i}
@@ -195,6 +195,7 @@ export default function OrdersPage() {
   const [total, setTotal] = useState(0)
   const [customers, setCustomers] = useState([])
   const [products, setProducts] = useState([])
+  const [stockProducts, setStockProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -238,17 +239,19 @@ export default function OrdersPage() {
         params.sort_dir = sortDir
       }
 
-      const [ordersRes, customersRes, productsRes, categoriesRes] = await Promise.all([
+      const [ordersRes, customersRes, productsRes, categoriesRes, stockRes] = await Promise.all([
         ordersApi.getAll(params),
         customersApi.getAll({ page_size: 100 }),
         productsApi.getAll({ page_size: 100 }),
         categoriesApi.getAll({ page_size: 100 }),
+        productsApi.getAll({ page_size: 100, stock_status: 'in_stock' }),
       ])
       setOrders(ordersRes.data.data)
       setTotal(ordersRes.data.total)
       setSelectedIds(new Set())
       setCustomers(customersRes.data.data)
       setProducts(productsRes.data.data)
+      setStockProducts(stockRes.data.data)
       setCategories(categoriesRes.data.data)
     } catch (err) {
       setError(t('orders.failed_load'))
@@ -614,6 +617,7 @@ export default function OrdersPage() {
         order={editingOrder}
         customers={customers}
         products={products}
+        stockProducts={stockProducts}
         categories={categories}
         saving={saving}
       />

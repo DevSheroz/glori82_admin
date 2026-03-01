@@ -38,6 +38,7 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
             "brand": item.product.brand if item.product else None,
             "category_name": item.product.category.category_name if item.product and item.product.category else None,
             "stock_status": item.product.stock_status if item.product else None,
+            "from_stock": item.from_stock,
         }
         for item in order.items
     ]

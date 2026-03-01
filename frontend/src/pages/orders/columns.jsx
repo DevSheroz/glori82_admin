@@ -143,7 +143,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
         return (
           <ul className="space-y-1">
             {row.items.map((it, i) => {
-              const inStock = it.stock_status && it.stock_status !== 'pre_order'
+              const inStock = it.from_stock === true
               return (
                 <li
                   key={it.item_id ?? i}
