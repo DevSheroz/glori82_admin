@@ -539,15 +539,15 @@ export default function OrdersPage() {
       >
         <div className="overflow-hidden">
           <Container className="p-3!">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-(--color-text-base)">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <span className="text-sm font-medium text-(--color-text-base) shrink-0">
                 {t('common.selected', { count: selectedIds.size })}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {selectedIds.size === 1 && (
                   <Button variant="secondary" size="sm" onClick={handleEditSelected}>
                     <Pencil className="w-3.5 h-3.5" />
-                    {t('common.edit')}
+                    <span className="hidden sm:inline">{t('common.edit')}</span>
                   </Button>
                 )}
                 <Button
@@ -558,20 +558,16 @@ export default function OrdersPage() {
                   title={!canArchive ? t('orders.archive_only_completed') : undefined}
                 >
                   <Archive className="w-3.5 h-3.5" />
-                  {t('orders.archive')} ({selectedIds.size})
+                  <span className="hidden sm:inline">{t('orders.archive')} ({selectedIds.size})</span>
                 </Button>
-                <Button
-                  variant="danger"
-                  size="sm"
-                  onClick={() => setDeleteTarget([...selectedIds])}
-                >
+                <Button variant="danger" size="sm" onClick={() => setDeleteTarget([...selectedIds])}>
                   <Trash2 className="w-3.5 h-3.5" />
-                  {t('common.delete')} ({selectedIds.size})
+                  <span className="hidden sm:inline">{t('common.delete')} ({selectedIds.size})</span>
                 </Button>
               </div>
               <button
                 onClick={() => setSelectedIds(new Set())}
-                className="ml-auto text-xs text-(--color-text-subtle) hover:text-(--color-text-base) cursor-pointer"
+                className="ml-auto text-(--color-text-subtle) hover:text-(--color-text-base) cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
