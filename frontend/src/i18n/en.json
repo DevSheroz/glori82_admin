@@ -59,6 +59,7 @@
     "failed_load": "Failed to load customers. Make sure the backend is running.",
     "failed_save": "Failed to save customer. Check the console for details.",
     "failed_delete": "Failed to delete customers.",
+    "deleted_success": "Customer(s) deleted.",
     "count": "{{count}} customer",
     "count_plural": "{{count}} customers",
     "delete_many_label": "{{count}} customers",
