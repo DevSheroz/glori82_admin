@@ -6,7 +6,8 @@
     "archived": "Архив",
     "customers": "Клиенты",
     "categories": "Категории",
-    "shipments": "Доставки"
+    "shipments": "Доставки",
+    "settings": "Настройки"
   },
   "common": {
     "edit": "Изменить",
@@ -344,6 +345,37 @@
     "col_fee_usd": "Тариф ($)",
     "col_fee_uzs": "Тариф (UZS)",
     "col_grand_total": "Итого (UZS)"
+  },
+  "settings": {
+    "title": "Настройки",
+    "subtitle": "Управление пользователями панели",
+    "add_user": "Добавить модератора",
+    "no_users": "Пользователи не найдены",
+    "no_users_desc": "Добавьте первого модератора для начала работы.",
+    "failed_load": "Не удалось загрузить пользователей.",
+    "failed_save": "Не удалось сохранить пользователя.",
+    "failed_delete": "Не удалось удалить пользователя.",
+    "created_success": "Пользователь создан.",
+    "updated_success": "Пользователь обновлён.",
+    "deleted_success": "Пользователь удалён.",
+    "delete_user": "Удалить пользователя",
+    "you": "вы",
+    "cannot_delete_self": "Нельзя удалить свой аккаунт",
+    "modal_add": "Добавить модератора",
+    "modal_edit": "Редактировать пользователя",
+    "create_user": "Создать",
+    "field_name": "Имя *",
+    "field_name_placeholder": "Полное имя",
+    "field_username": "Имя пользователя *",
+    "field_username_placeholder": "Логин",
+    "field_password": "Пароль *",
+    "field_password_placeholder": "Установите пароль",
+    "field_password_edit": "Новый пароль",
+    "field_password_edit_placeholder": "Оставьте пустым, чтобы не менять",
+    "field_active": "Активен",
+    "error_name_required": "Имя обязательно",
+    "error_username_required": "Имя пользователя обязательно",
+    "error_password_required": "Пароль обязателен"
   },
   "dashboard": {
     "title": "Главная",

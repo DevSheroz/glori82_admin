@@ -6,7 +6,8 @@
     "archived": "Archived",
     "customers": "Customers",
     "categories": "Categories",
-    "shipments": "Shipments"
+    "shipments": "Shipments",
+    "settings": "Settings"
   },
   "common": {
     "edit": "Edit",
@@ -344,6 +345,37 @@
     "col_fee_usd": "Fee ($)",
     "col_fee_uzs": "Fee (UZS)",
     "col_grand_total": "Grand Total (UZS)"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage admin panel users",
+    "add_user": "Add Moderator",
+    "no_users": "No users found",
+    "no_users_desc": "Add your first moderator to get started.",
+    "failed_load": "Failed to load users.",
+    "failed_save": "Failed to save user.",
+    "failed_delete": "Failed to delete user.",
+    "created_success": "User created.",
+    "updated_success": "User updated.",
+    "deleted_success": "User deleted.",
+    "delete_user": "Delete User",
+    "you": "you",
+    "cannot_delete_self": "Cannot delete your own account",
+    "modal_add": "Add Moderator",
+    "modal_edit": "Edit User",
+    "create_user": "Create",
+    "field_name": "Display Name *",
+    "field_name_placeholder": "Full name",
+    "field_username": "Username *",
+    "field_username_placeholder": "Login username",
+    "field_password": "Password *",
+    "field_password_placeholder": "Set a password",
+    "field_password_edit": "New Password",
+    "field_password_edit_placeholder": "Leave blank to keep current",
+    "field_active": "Active",
+    "error_name_required": "Name is required",
+    "error_username_required": "Username is required",
+    "error_password_required": "Password is required"
   },
   "dashboard": {
     "title": "Dashboard",

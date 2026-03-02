@@ -11,6 +11,7 @@ import CustomersPage from './pages/customers/CustomersPage'
 import CategoriesPage from './pages/categories/CategoriesPage'
 import ShipmentsPage from './pages/shipments/ShipmentsPage'
 import DashboardPage from './pages/dashboard/DashboardPage'
+import SettingsPage from './pages/settings/SettingsPage'
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
               <Route path="customers" element={<CustomersPage />} />
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipments" element={<ShipmentsPage />} />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Route>
         </Routes>

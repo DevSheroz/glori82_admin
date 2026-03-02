@@ -7,6 +7,7 @@ import {
   Users,
   FolderTree,
   Truck,
+  Settings,
   X,
   Menu,
   LogOut,
@@ -79,7 +80,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
         ))}
       </nav>
       {user && (
-        <div className="px-3 pb-2">
+        <div className="px-3 pb-1 space-y-0.5">
           <NavLink
             to="/archived"
             onClick={onMobileClose}
@@ -95,6 +96,23 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
             <Archive className="w-4 h-4 shrink-0" strokeWidth={2} />
             {!isCollapsed && t('nav.archived')}
           </NavLink>
+          {user.role === 'admin' && (
+            <NavLink
+              to="/settings"
+              onClick={onMobileClose}
+              title={isCollapsed ? t('nav.settings') : undefined}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium overflow-hidden whitespace-nowrap transition-colors ${
+                  isActive
+                    ? 'bg-(--color-bg-component) text-(--color-text-base)'
+                    : 'text-(--color-text-subtle) hover:bg-(--color-bg-subtle) hover:text-(--color-text-base)'
+                }`
+              }
+            >
+              <Settings className="w-4 h-4 shrink-0" strokeWidth={2} />
+              {!isCollapsed && t('nav.settings')}
+            </NavLink>
+          )}
         </div>
       )}
       {user && (

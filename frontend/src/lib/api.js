@@ -88,6 +88,13 @@ export const dashboardApi = {
   getMonthlyRevenue: () => api.get('/dashboard/monthly-revenue'),
 }
 
+export const usersApi = {
+  getAll: () => api.get('/users'),
+  create: (data) => api.post('/users', data),
+  update: (id, data) => api.patch(`/users/${id}`, data),
+  delete: (id) => api.delete(`/users/${id}`),
+}
+
 export const shipmentsApi = {
   getAll: (params) => api.get('/shipments', { params }),
   getById: (id) => api.get(`/shipments/${id}`),

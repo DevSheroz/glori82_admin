@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, currency, customers, dashboard, orders, product_categories, products, shipments
+from app.api import auth, currency, customers, dashboard, orders, product_categories, products, shipments, users
 from app.core.database import Base, engine
 import app.models
 
@@ -33,6 +33,7 @@ app.include_router(orders.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 app.include_router(currency.router, prefix="/api")
 app.include_router(shipments.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
 
 
 @app.get("/api/health")
