@@ -35,10 +35,13 @@ function getStockBadge(row, t) {
   }
 }
 
-export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, selectedIds, onToggleSelect, onToggleAll, allSelected }) {
+export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, selectedIds, onToggleSelect, onToggleAll, allSelected, isAdmin }) {
   const { t } = useTranslation()
-  return [
-    {
+
+  const cols = []
+
+  if (isAdmin) {
+    cols.push({
       key: 'select',
       label: (
         <input
@@ -59,7 +62,10 @@ export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, sele
           className={checkboxClass}
         />
       ),
-    },
+    })
+  }
+
+  cols.push(
     {
       key: 'product_name',
       label: <SortHeader label={t('inventory.col_name')} sortKey="product_name" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
@@ -68,18 +74,12 @@ export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, sele
         const attrText = attrs.map((a) => `${a.attribute_name}: ${a.value}`).join(', ')
         return (
           <div>
-            <div className="font-medium text-(--color-text-base)">
-              {row.product_name}
-            </div>
+            <div className="font-medium text-(--color-text-base)">{row.product_name}</div>
             {attrText && (
-              <div className="text-xs text-(--color-text-muted) truncate max-w-60">
-                {attrText}
-              </div>
+              <div className="text-xs text-(--color-text-muted) truncate max-w-60">{attrText}</div>
             )}
             {!attrText && row.description && (
-              <div className="text-xs text-(--color-text-muted) truncate max-w-50">
-                {row.description}
-              </div>
+              <div className="text-xs text-(--color-text-muted) truncate max-w-50">{row.description}</div>
             )}
           </div>
         )
@@ -88,32 +88,15 @@ export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, sele
     {
       key: 'brand',
       label: <SortHeader label={t('inventory.col_brand')} sortKey="brand" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
-      render: (row) => (
-        <span className="text-(--color-text-subtle)">
-          {row.brand ?? '—'}
-        </span>
-      ),
+      render: (row) => <span className="text-(--color-text-subtle)">{row.brand ?? '—'}</span>,
     },
     {
       key: 'category',
       label: <SortHeader label={t('inventory.col_category')} sortKey="category_name" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       render: (row) => {
         const cat = categories.find((c) => c.category_id === row.category_id)
-        return (
-          <span className="text-(--color-text-subtle)">
-            {cat?.category_name ?? '—'}
-          </span>
-        )
+        return <span className="text-(--color-text-subtle)">{cat?.category_name ?? '—'}</span>
       },
-    },
-    {
-      key: 'cost_price',
-      label: t('inventory.col_cost'),
-      render: (row) => (
-        <span className="tabular-nums">
-          {row.cost_price != null ? Number(row.cost_price).toLocaleString() : '—'}
-        </span>
-      ),
     },
     {
       key: 'total_uzs',
@@ -121,57 +104,17 @@ export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, sele
       minWidth: '140px',
       render: (row) => {
         if (row.selling_price == null || row.packaged_weight_grams == null || !usdToUzs) return <span className="text-(--color-text-muted)">—</span>
-        const sellingUsd = Number(row.selling_price)
         const customerCargo = (row.packaged_weight_grams / 1000) * 13
-        const totalUsd = sellingUsd + 3 + customerCargo
-        const totalUzs = totalUsd * usdToUzs
-        return (
-          <span className="tabular-nums font-medium">
-            {Math.round(totalUzs).toLocaleString()}
-          </span>
-        )
+        const totalUzs = (Number(row.selling_price) + 3 + customerCargo) * usdToUzs
+        return <span className="tabular-nums font-medium">{Math.round(totalUzs).toLocaleString()}</span>
       },
-    },
-    {
-      key: 'selling_price',
-      label: t('inventory.col_selling'),
-      render: (row) => (
-        <span className="tabular-nums">
-          {row.selling_price != null ? `$${Number(row.selling_price).toFixed(2)}` : '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'selling_price_uzs',
-      label: t('inventory.col_selling_uzs'),
-      render: (row) => (
-        <span className="tabular-nums">
-          {row.selling_price_uzs != null
-            ? Number(row.selling_price_uzs).toLocaleString()
-            : '—'}
-        </span>
-      ),
     },
     {
       key: 'weight_kg',
       label: <SortHeader label={t('inventory.col_weight')} sortKey="packaged_weight_grams" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       render: (row) => (
         <span className="tabular-nums">
-          {row.packaged_weight_grams != null
-            ? (row.packaged_weight_grams / 1000).toFixed(2)
-            : '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'cargo',
-      label: t('inventory.col_cargo'),
-      minWidth: '110px',
-      render: (row) => (
-        <span className="tabular-nums">
-          {row.packaged_weight_grams != null
-            ? `$${((row.packaged_weight_grams / 1000) * 12).toFixed(2)}`
-            : '—'}
+          {row.packaged_weight_grams != null ? (row.packaged_weight_grams / 1000).toFixed(2) : '—'}
         </span>
       ),
     },
@@ -181,25 +124,19 @@ export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, sele
       minWidth: '130px',
       render: (row) => (
         <span className="tabular-nums">
-          {row.packaged_weight_grams != null
-            ? `$${((row.packaged_weight_grams / 1000) * 13).toFixed(2)}`
-            : '—'}
+          {row.packaged_weight_grams != null ? `$${((row.packaged_weight_grams / 1000) * 13).toFixed(2)}` : '—'}
         </span>
       ),
     },
     {
       key: 'times_ordered',
       label: t('inventory.col_ordered'),
-      render: (row) => (
-        <span className="tabular-nums">{row.times_ordered ?? 0}</span>
-      ),
+      render: (row) => <span className="tabular-nums">{row.times_ordered ?? 0}</span>,
     },
     {
       key: 'stock_quantity',
       label: <SortHeader label={t('inventory.col_stock')} sortKey="stock_quantity" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
-      render: (row) => (
-        <span className="tabular-nums">{row.stock_quantity}</span>
-      ),
+      render: (row) => <span className="tabular-nums">{row.stock_quantity}</span>,
     },
     {
       key: 'status',
@@ -213,5 +150,7 @@ export function getColumns({ categories, usdToUzs, sortBy, sortDir, onSort, sele
         </div>
       ),
     },
-  ]
+  )
+
+  return cols
 }

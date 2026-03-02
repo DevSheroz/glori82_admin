@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../../contexts/AuthContext'
 import { Plus, Truck, Pencil, Trash2, X } from 'lucide-react'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
@@ -23,7 +24,7 @@ const cardStatusColors = {
 
 const chevronSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`
 
-function ShipmentCard({ shipment, selected, onToggleSelect, onViewDetail, onEdit, onDelete, onStatusChange }) {
+function ShipmentCard({ shipment, selected, onToggleSelect, onViewDetail, onEdit, onDelete, onStatusChange, isAdmin }) {
   const { t } = useTranslation()
   const cardStatusOptions = [
     { value: 'pending', label: t('shipments.status.pending') },
@@ -34,15 +35,17 @@ function ShipmentCard({ shipment, selected, onToggleSelect, onViewDetail, onEdit
   ]
   return (
     <div className={`p-4 space-y-3 transition-colors ${selected ? 'bg-blue-50/40' : ''}`}>
-      {/* Row 1: checkbox + shipment # (tappable) + date */}
+      {/* Row 1: checkbox (admin only) + shipment # (tappable) + date */}
       <div className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={() => onToggleSelect(shipment.shipment_id)}
-          onClick={(e) => e.stopPropagation()}
-          className="mt-0.5 rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
-        />
+        {isAdmin && (
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect(shipment.shipment_id)}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-0.5 rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+          />
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <button
@@ -68,59 +71,69 @@ function ShipmentCard({ shipment, selected, onToggleSelect, onViewDetail, onEdit
         </div>
       </div>
 
-      {/* Row 2: amounts */}
-      <div className="ml-7 grid grid-cols-3 gap-2">
-        <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">Orders (UZS)</div>
-          <span className="tabular-nums text-sm font-medium">
-            {Number(shipment.total_orders_uzs).toLocaleString()}
-          </span>
+      {/* Row 2: amounts (admin only) */}
+      {isAdmin && (
+        <div className="ml-7 grid grid-cols-3 gap-2">
+          <div>
+            <div className="text-xs text-(--color-text-muted) mb-0.5">Orders (UZS)</div>
+            <span className="tabular-nums text-sm font-medium">
+              {Number(shipment.total_orders_uzs).toLocaleString()}
+            </span>
+          </div>
+          <div>
+            <div className="text-xs text-(--color-text-muted) mb-0.5">Fee ($)</div>
+            <span className="tabular-nums text-sm font-medium">
+              ${Number(shipment.shipment_fee).toFixed(2)}
+            </span>
+          </div>
+          <div>
+            <div className="text-xs text-(--color-text-muted) mb-0.5">Grand Total</div>
+            <span className="tabular-nums text-sm font-semibold">
+              {Number(shipment.grand_total_uzs).toLocaleString()}
+            </span>
+          </div>
         </div>
-        <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">Fee ($)</div>
-          <span className="tabular-nums text-sm font-medium">
-            ${Number(shipment.shipment_fee).toFixed(2)}
-          </span>
-        </div>
-        <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">Grand Total</div>
-          <span className="tabular-nums text-sm font-semibold">
-            {Number(shipment.grand_total_uzs).toLocaleString()}
-          </span>
-        </div>
-      </div>
+      )}
 
-      {/* Row 3: status dropdown + edit/delete */}
+      {/* Row 3: status + edit/delete */}
       <div className="ml-7 flex items-center gap-2">
-        <select
-          value={shipment.status}
-          onChange={(e) => {
-            e.stopPropagation()
-            if (e.target.value !== shipment.status) onStatusChange(shipment.shipment_id, e.target.value)
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${cardStatusColors[shipment.status] || ''}`}
-          style={{ backgroundImage: chevronSvg }}
-        >
-          {cardStatusOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+        {isAdmin ? (
+          <select
+            value={shipment.status}
+            onChange={(e) => {
+              e.stopPropagation()
+              if (e.target.value !== shipment.status) onStatusChange(shipment.shipment_id, e.target.value)
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${cardStatusColors[shipment.status] || ''}`}
+            style={{ backgroundImage: chevronSvg }}
+          >
+            {cardStatusOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        ) : (
+          <span className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 ${cardStatusColors[shipment.status] || ''}`}>
+            {cardStatusOptions.find((o) => o.value === shipment.status)?.label ?? shipment.status}
+          </span>
+        )}
 
-        <div className="ml-auto flex items-center gap-1">
-          <button
-            onClick={onEdit}
-            className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-(--color-text-base) hover:bg-(--color-bg-component) transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          <button
-            onClick={onDelete}
-            className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        {isAdmin && (
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              onClick={onEdit}
+              className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-(--color-text-base) hover:bg-(--color-bg-component) transition-colors"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={onDelete}
+              className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -128,6 +141,8 @@ function ShipmentCard({ shipment, selected, onToggleSelect, onViewDetail, onEdit
 
 export default function ShipmentsPage() {
   const { t } = useTranslation()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [shipments, setShipments] = useState([])
   const [total, setTotal] = useState(0)
   const [allOrders, setAllOrders] = useState([])
@@ -284,6 +299,7 @@ export default function ShipmentsPage() {
     onToggleSelect: toggleSelect,
     onToggleAll: toggleAll,
     allSelected: shipments.length > 0 && selectedIds.size === shipments.length,
+    isAdmin,
   })
 
   const selectClass =
@@ -300,10 +316,12 @@ export default function ShipmentsPage() {
             {total} shipment{total !== 1 ? 's' : ''}
           </p>
         </div>
-        <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
-          <Plus className="w-4 h-4" />
-          {t('shipments.add')}
-        </Button>
+        {isAdmin && (
+          <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
+            <Plus className="w-4 h-4" />
+            {t('shipments.add')}
+          </Button>
+        )}
       </div>
 
       <Container className="p-3!">
@@ -335,7 +353,7 @@ export default function ShipmentsPage() {
       {/* Bulk Actions */}
       <div
         className={`grid transition-all duration-200 ease-out ${
-          selectedIds.size > 0 ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          isAdmin && selectedIds.size > 0 ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
         }`}
       >
         <div className="overflow-hidden">
@@ -403,15 +421,17 @@ export default function ShipmentsPage() {
           <>
             {/* Mobile card list */}
             <div className="sm:hidden divide-y divide-(--color-border-base) max-h-[calc(100vh-220px)] overflow-y-auto">
-              <div className="flex items-center gap-3 px-4 py-2.5 bg-(--color-bg-subtle) border-b border-(--color-border-base)">
-                <input
-                  type="checkbox"
-                  checked={shipments.length > 0 && selectedIds.size === shipments.length}
-                  onChange={toggleAll}
-                  className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
-                />
-                <span className="text-xs text-(--color-text-subtle)">Select all</span>
-              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-3 px-4 py-2.5 bg-(--color-bg-subtle) border-b border-(--color-border-base)">
+                  <input
+                    type="checkbox"
+                    checked={shipments.length > 0 && selectedIds.size === shipments.length}
+                    onChange={toggleAll}
+                    className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+                  />
+                  <span className="text-xs text-(--color-text-subtle)">Select all</span>
+                </div>
+              )}
               {shipments.map((shipment) => (
                 <ShipmentCard
                   key={shipment.shipment_id}
@@ -422,6 +442,7 @@ export default function ShipmentsPage() {
                   onEdit={() => { setEditingShipment(shipment); setModalOpen(true) }}
                   onDelete={() => setDeleteTarget([shipment.shipment_id])}
                   onStatusChange={handleStatusChange}
+                  isAdmin={isAdmin}
                 />
               ))}
             </div>

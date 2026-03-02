@@ -10,7 +10,7 @@ const statusColors = {
 
 const checkboxClass = 'rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer'
 
-export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected }) {
+export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected, isAdmin }) {
   const { t } = useTranslation()
 
   const statusOptions = [
@@ -21,8 +21,10 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
     { value: 'completed', label: t('shipments.status.completed') },
   ]
 
-  return [
-    {
+  const cols = []
+
+  if (isAdmin) {
+    cols.push({
       key: 'select',
       label: (
         <input
@@ -43,7 +45,10 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
           className={checkboxClass}
         />
       ),
-    },
+    })
+  }
+
+  cols.push(
     {
       key: 'shipment_number',
       label: t('shipments.col_shipment_num'),
@@ -63,7 +68,7 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
     {
       key: 'status',
       label: t('common.status'),
-      render: (row) => (
+      render: (row) => isAdmin ? (
         <select
           value={row.status}
           onChange={(e) => {
@@ -80,6 +85,10 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
+      ) : (
+        <span className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 ${statusColors[row.status] || ''}`}>
+          {statusOptions.find((o) => o.value === row.status)?.label ?? row.status}
+        </span>
       ),
     },
     {
@@ -105,56 +114,64 @@ export function getColumns({ onRowClick, onStatusChange, selectedIds, onToggleSe
         </span>
       ),
     },
-    {
-      key: 'total_orders_uzs',
-      label: t('shipments.col_orders_uzs'),
-      render: (row) => (
-        <span className="tabular-nums">
-          {Number(row.total_orders_uzs).toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      key: 'shipment_fee',
-      label: t('shipments.col_fee_usd'),
-      render: (row) => (
-        <span className="tabular-nums">
-          ${Number(row.shipment_fee).toFixed(2)}
-        </span>
-      ),
-    },
-    {
-      key: 'shipment_fee_uzs',
-      label: t('shipments.col_fee_uzs'),
-      render: (row) => (
-        <span className="tabular-nums">
-          {Number(row.shipment_fee_uzs).toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      key: 'grand_total_uzs',
-      label: t('shipments.col_grand_total'),
-      render: (row) => (
-        <span className="tabular-nums font-medium">
-          {Number(row.grand_total_uzs).toLocaleString()}
-        </span>
-      ),
-    },
-    {
-      key: 'created_at',
-      label: t('common.date'),
-      render: (row) => (
-        <span className="text-(--color-text-subtle) tabular-nums">
-          {row.created_at
-            ? new Date(row.created_at).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })
-            : '—'}
-        </span>
-      ),
-    },
-  ]
+  )
+
+  if (isAdmin) {
+    cols.push(
+      {
+        key: 'total_orders_uzs',
+        label: t('shipments.col_orders_uzs'),
+        render: (row) => (
+          <span className="tabular-nums">
+            {Number(row.total_orders_uzs).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        key: 'shipment_fee',
+        label: t('shipments.col_fee_usd'),
+        render: (row) => (
+          <span className="tabular-nums">
+            ${Number(row.shipment_fee).toFixed(2)}
+          </span>
+        ),
+      },
+      {
+        key: 'shipment_fee_uzs',
+        label: t('shipments.col_fee_uzs'),
+        render: (row) => (
+          <span className="tabular-nums">
+            {Number(row.shipment_fee_uzs).toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        key: 'grand_total_uzs',
+        label: t('shipments.col_grand_total'),
+        render: (row) => (
+          <span className="tabular-nums font-medium">
+            {Number(row.grand_total_uzs).toLocaleString()}
+          </span>
+        ),
+      },
+    )
+  }
+
+  cols.push({
+    key: 'created_at',
+    label: t('common.date'),
+    render: (row) => (
+      <span className="text-(--color-text-subtle) tabular-nums">
+        {row.created_at
+          ? new Date(row.created_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          : '—'}
+      </span>
+    ),
+  })
+
+  return cols
 }

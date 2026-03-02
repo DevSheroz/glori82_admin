@@ -15,12 +15,12 @@ import {
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../contexts/AuthContext'
 
-const navItems = [
-  { to: '/dashboard', key: 'nav.dashboard', icon: LayoutDashboard },
+const allNavItems = [
+  { to: '/dashboard', key: 'nav.dashboard', icon: LayoutDashboard, adminOnly: true },
   { to: '/inventory', key: 'nav.inventory', icon: Package },
   { to: '/orders', key: 'nav.orders', icon: ShoppingCart },
   { to: '/customers', key: 'nav.customers', icon: Users },
-  { to: '/categories', key: 'nav.categories', icon: FolderTree },
+  { to: '/categories', key: 'nav.categories', icon: FolderTree, adminOnly: true },
   { to: '/shipments', key: 'nav.shipments', icon: Truck },
 ]
 
@@ -60,7 +60,7 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
         </button>
       </div>
       <nav className="flex-1 py-3 px-3 space-y-0.5 overflow-y-auto">
-        {navItems.map((item) => (
+        {allNavItems.filter((item) => !item.adminOnly || user?.role === 'admin').map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
@@ -81,21 +81,23 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
       </nav>
       {user && (
         <div className="px-3 pb-1 space-y-0.5">
-          <NavLink
-            to="/archived"
-            onClick={onMobileClose}
-            title={isCollapsed ? t('nav.archived') : undefined}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium overflow-hidden whitespace-nowrap transition-colors ${
-                isActive
-                  ? 'bg-(--color-bg-component) text-(--color-text-base)'
-                  : 'text-(--color-text-subtle) hover:bg-(--color-bg-subtle) hover:text-(--color-text-base)'
-              }`
-            }
-          >
-            <Archive className="w-4 h-4 shrink-0" strokeWidth={2} />
-            {!isCollapsed && t('nav.archived')}
-          </NavLink>
+          {user.role === 'admin' && (
+            <NavLink
+              to="/archived"
+              onClick={onMobileClose}
+              title={isCollapsed ? t('nav.archived') : undefined}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium overflow-hidden whitespace-nowrap transition-colors ${
+                  isActive
+                    ? 'bg-(--color-bg-component) text-(--color-text-base)'
+                    : 'text-(--color-text-subtle) hover:bg-(--color-bg-subtle) hover:text-(--color-text-base)'
+                }`
+              }
+            >
+              <Archive className="w-4 h-4 shrink-0" strokeWidth={2} />
+              {!isCollapsed && t('nav.archived')}
+            </NavLink>
+          )}
           {user.role === 'admin' && (
             <NavLink
               to="/settings"

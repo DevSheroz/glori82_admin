@@ -48,7 +48,7 @@ function uniqueList(items, key) {
   ))
 }
 
-export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected, sortBy, sortDir, onSort }) {
+export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected, sortBy, sortDir, onSort, isAdmin }) {
   const { t } = useTranslation()
 
   const statusOptions = [
@@ -67,8 +67,10 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     { value: 'prepayment', label: t('orders.payment.prepayment') },
   ]
 
-  return [
-    {
+  const cols = []
+
+  if (isAdmin) {
+    cols.push({
       key: 'select',
       label: (
         <input
@@ -89,7 +91,10 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
           className={checkboxClass}
         />
       ),
-    },
+    })
+  }
+
+  cols.push(
     {
       key: 'order_number',
       label: t('orders.order_num'),
@@ -188,27 +193,35 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
         )
       ),
     },
-    {
-      key: 'total_cost',
-      label: t('orders.cost_krw'),
-      render: (row) => (
-        <span className="tabular-nums">
-          {row.total_cost != null
-            ? Number(row.total_cost).toLocaleString()
-            : '—'}
-        </span>
-      ),
-    },
-    {
-      key: 'total_selling_usd',
-      label: t('orders.selling_usd'),
-      minWidth: '110px',
-      render: (row) => (
-        <span className="tabular-nums">
-          {row.total_selling_usd != null ? `$${Number(row.total_selling_usd).toFixed(2)}` : '—'}
-        </span>
-      ),
-    },
+  )
+
+  if (isAdmin) {
+    cols.push(
+      {
+        key: 'total_cost',
+        label: t('orders.cost_krw'),
+        render: (row) => (
+          <span className="tabular-nums">
+            {row.total_cost != null
+              ? Number(row.total_cost).toLocaleString()
+              : '—'}
+          </span>
+        ),
+      },
+      {
+        key: 'total_selling_usd',
+        label: t('orders.selling_usd'),
+        minWidth: '110px',
+        render: (row) => (
+          <span className="tabular-nums">
+            {row.total_selling_usd != null ? `$${Number(row.total_selling_usd).toFixed(2)}` : '—'}
+          </span>
+        ),
+      },
+    )
+  }
+
+  cols.push(
     {
       key: 'total_weight_kg',
       label: t('orders.weight_kg'),
@@ -220,7 +233,10 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
         </span>
       ),
     },
-    {
+  )
+
+  if (isAdmin) {
+    cols.push({
       key: 'shipping_fee_usd',
       label: t('orders.cargo_col'),
       minWidth: '110px',
@@ -229,7 +245,10 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
           {row.shipping_fee_usd != null ? `$${Number(row.shipping_fee_usd).toFixed(2)}` : '—'}
         </span>
       ),
-    },
+    })
+  }
+
+  cols.push(
     {
       key: 'customer_cargo_usd',
       label: t('orders.cust_cargo_col'),
@@ -243,7 +262,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     {
       key: 'status',
       label: <SortHeader label={t('common.status')} sortKey="status" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
-      render: (row) => (
+      render: (row) => isAdmin ? (
         <select
           value={row.status}
           onChange={(e) => {
@@ -260,12 +279,16 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
+      ) : (
+        <span className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 ${statusColors[row.status] || ''}`}>
+          {statusOptions.find((o) => o.value === row.status)?.label ?? row.status}
+        </span>
       ),
     },
     {
       key: 'payment_status',
       label: t('orders.payment_col'),
-      render: (row) => (
+      render: (row) => isAdmin ? (
         <select
           value={row.payment_status || 'unpaid'}
           onChange={(e) => {
@@ -282,6 +305,10 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
+      ) : (
+        <span className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 ${paymentColors[row.payment_status] || paymentColors.unpaid}`}>
+          {paymentOptions.find((o) => o.value === (row.payment_status || 'unpaid'))?.label ?? row.payment_status}
+        </span>
       ),
     },
     {
@@ -327,5 +354,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
         </span>
       ),
     },
-  ]
+  )
+
+  return cols
 }

@@ -1,5 +1,6 @@
 import { Clock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../../contexts/AuthContext'
 import Modal from '../../components/Modal'
 import Badge from '../../components/Badge'
 
@@ -7,6 +8,8 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
   if (!shipment) return null
 
   const { t } = useTranslation()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
 
   function getStatusBadge(status) {
     switch (status) {
@@ -150,7 +153,7 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
                   <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">{t('common.product')}</th>
                   <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">{t('common.qty')}</th>
                   <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">{t('common.weight')}</th>
-                  <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">{t('shipments.detail.cost_krw')}</th>
+                  {isAdmin && <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">{t('shipments.detail.cost_krw')}</th>}
                   <th className="text-left text-xs font-semibold text-(--color-text-base) px-3 py-2">{t('shipments.detail.selling_usd')}</th>
                 </tr>
               </thead>
@@ -162,9 +165,11 @@ export default function ShipmentDetail({ open, onClose, shipment }) {
                     <td className="px-3 py-2 tabular-nums text-(--color-text-subtle)">
                       {Number(item.weight_kg).toFixed(2)} kg
                     </td>
-                    <td className="px-3 py-2 tabular-nums text-(--color-text-subtle)">
-                      {Number(item.cost_price_krw).toLocaleString()} ₩
-                    </td>
+                    {isAdmin && (
+                      <td className="px-3 py-2 tabular-nums text-(--color-text-subtle)">
+                        {Number(item.cost_price_krw).toLocaleString()} ₩
+                      </td>
+                    )}
                     <td className="px-3 py-2 tabular-nums text-(--color-text-subtle)">
                       {item.selling_price_usd != null
                         ? `$${Number(item.selling_price_usd).toFixed(2)}`

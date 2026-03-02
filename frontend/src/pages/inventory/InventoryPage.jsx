@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Plus, Package, Pencil, Trash2, X } from 'lucide-react'
+import { useAuth } from '../../contexts/AuthContext'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
 import Table from '../../components/Table'
@@ -12,7 +13,7 @@ import { productsApi, categoriesApi, currencyApi } from '../../lib/api'
 
 const PAGE_SIZE = 20
 
-function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, onEdit, onDelete }) {
+function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, onEdit, onDelete, isAdmin }) {
   const { t } = useTranslation()
   const attrs = product.attribute_values ?? []
   const attrText = attrs.map((a) => `${a.attribute_name}: ${a.value}`).join(', ')
@@ -25,7 +26,6 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
   }
 
   const weightKg = product.packaged_weight_grams != null ? (product.packaged_weight_grams / 1000).toFixed(2) : null
-  const cargo = product.packaged_weight_grams != null ? ((product.packaged_weight_grams / 1000) * 12).toFixed(2) : null
 
   let stockBadgeClass = 'text-green-700 bg-green-50 ring-1 ring-green-200'
   let stockLabel = t('inventory.stock_status.in_stock')
@@ -42,15 +42,17 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
 
   return (
     <div className={`p-4 space-y-3 transition-colors ${selected ? 'bg-blue-50/40' : ''}`}>
-      {/* Row 1: checkbox + name + stock badge */}
+      {/* Row 1: checkbox (admin only) + name + stock badge */}
       <div className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={() => onToggleSelect(product.product_id)}
-          onClick={(e) => e.stopPropagation()}
-          className="mt-0.5 rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
-        />
+        {isAdmin && (
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect(product.product_id)}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-0.5 rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+          />
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <span className="font-semibold text-(--color-text-base) leading-snug">{product.product_name}</span>
@@ -79,40 +81,18 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
         </div>
       </div>
 
-      {/* Row 2: prices */}
-      <div className="ml-7 grid grid-cols-3 gap-2">
-        <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_cost')}</div>
-          <span className="tabular-nums text-sm font-medium">
-            {product.cost_price != null ? Number(product.cost_price).toLocaleString() : '—'}
-          </span>
-        </div>
-        <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_selling')}</div>
-          <span className="tabular-nums text-sm font-medium">
-            {product.selling_price != null ? `$${Number(product.selling_price).toFixed(2)}` : '—'}
-          </span>
-        </div>
-        <div>
-          <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_total')}</div>
-          <span className="tabular-nums text-sm font-medium">
-            {totalUzs != null ? totalUzs.toLocaleString() : '—'}
-          </span>
-        </div>
-      </div>
-
-      {/* Row 3: weight / cargo / stock qty / times ordered */}
-      <div className="ml-7 flex items-center gap-4 text-sm">
+      {/* Row 2: total + weight + stock qty + times ordered */}
+      <div className={`flex items-center gap-4 text-sm ${isAdmin ? 'ml-7' : ''}`}>
+        {totalUzs != null && (
+          <div>
+            <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_total')}</div>
+            <span className="tabular-nums font-medium">{totalUzs.toLocaleString()}</span>
+          </div>
+        )}
         {weightKg && (
           <div>
             <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_weight')}</div>
             <span className="tabular-nums">{weightKg} kg</span>
-          </div>
-        )}
-        {cargo && (
-          <div>
-            <div className="text-xs text-(--color-text-muted) mb-0.5">{t('inventory.card_cargo')}</div>
-            <span className="tabular-nums">${cargo}</span>
           </div>
         )}
         <div>
@@ -125,27 +105,31 @@ function ProductCard({ product, categories, usdToUzs, selected, onToggleSelect, 
         </div>
       </div>
 
-      {/* Row 4: actions */}
-      <div className="ml-7 flex justify-end gap-1">
-        <button
-          onClick={onEdit}
-          className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-(--color-text-base) hover:bg-(--color-bg-component) transition-colors"
-        >
-          <Pencil className="w-3.5 h-3.5" />
-        </button>
-        <button
-          onClick={onDelete}
-          className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      {/* Row 3: actions (admin only) */}
+      {isAdmin && (
+        <div className="ml-7 flex justify-end gap-1">
+          <button
+            onClick={onEdit}
+            className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-(--color-text-base) hover:bg-(--color-bg-component) transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </button>
+          <button
+            onClick={onDelete}
+            className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   )
 }
 
 export default function InventoryPage() {
   const { t } = useTranslation()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [products, setProducts] = useState([])
   const [total, setTotal] = useState(0)
   const [categories, setCategories] = useState([])
@@ -296,6 +280,7 @@ export default function InventoryPage() {
     onToggleSelect: toggleSelect,
     onToggleAll: toggleAll,
     allSelected: products.length > 0 && selectedIds.size === products.length,
+    isAdmin,
   })
 
   const selectClass =
@@ -313,10 +298,12 @@ export default function InventoryPage() {
             {total !== 1 ? t('inventory.count_plural', { count: total }) : t('inventory.count', { count: total })}
           </p>
         </div>
-        <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
-          <Plus className="w-4 h-4" />
-          {t('inventory.add')}
-        </Button>
+        {isAdmin && (
+          <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
+            <Plus className="w-4 h-4" />
+            {t('inventory.add')}
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -362,7 +349,7 @@ export default function InventoryPage() {
       {/* Bulk Actions */}
       <div
         className={`grid transition-all duration-200 ease-out ${
-          selectedIds.size > 0 ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          isAdmin && selectedIds.size > 0 ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
         }`}
       >
         <div className="overflow-hidden">
@@ -431,15 +418,17 @@ export default function InventoryPage() {
           <>
             {/* Mobile card list */}
             <div className="sm:hidden divide-y divide-(--color-border-base) max-h-[calc(100vh-220px)] overflow-y-auto">
-              <div className="flex items-center gap-3 px-4 py-2.5 bg-(--color-bg-subtle) border-b border-(--color-border-base)">
-                <input
-                  type="checkbox"
-                  checked={products.length > 0 && selectedIds.size === products.length}
-                  onChange={toggleAll}
-                  className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
-                />
-                <span className="text-xs text-(--color-text-subtle)">{t('common.select_all')}</span>
-              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-3 px-4 py-2.5 bg-(--color-bg-subtle) border-b border-(--color-border-base)">
+                  <input
+                    type="checkbox"
+                    checked={products.length > 0 && selectedIds.size === products.length}
+                    onChange={toggleAll}
+                    className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+                  />
+                  <span className="text-xs text-(--color-text-subtle)">{t('common.select_all')}</span>
+                </div>
+              )}
               {products.map((product) => (
                 <ProductCard
                   key={product.product_id}
@@ -450,6 +439,7 @@ export default function InventoryPage() {
                   onToggleSelect={toggleSelect}
                   onEdit={() => { setEditingProduct(product); setModalOpen(true) }}
                   onDelete={() => setDeleteTarget([product.product_id])}
+                  isAdmin={isAdmin}
                 />
               ))}
             </div>

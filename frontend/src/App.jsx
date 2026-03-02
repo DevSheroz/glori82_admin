@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { AuthProvider } from './contexts/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
+import AdminRoute from './components/AdminRoute'
 import Layout from './components/Layout'
 import LoginPage from './pages/auth/LoginPage'
 import InventoryPage from './pages/inventory/InventoryPage'
@@ -24,13 +25,15 @@ export default function App() {
             <Route element={<Layout />}>
               <Route index element={<Navigate to="/orders" replace />} />
               <Route path="inventory" element={<InventoryPage />} />
-              <Route path="dashboard" element={<DashboardPage />} />
               <Route path="orders" element={<OrdersPage />} />
-              <Route path="archived" element={<ArchivedOrdersPage />} />
               <Route path="customers" element={<CustomersPage />} />
-              <Route path="categories" element={<CategoriesPage />} />
               <Route path="shipments" element={<ShipmentsPage />} />
-              <Route path="settings" element={<SettingsPage />} />
+              <Route element={<AdminRoute />}>
+                <Route path="archived" element={<ArchivedOrdersPage />} />
+                <Route path="categories" element={<CategoriesPage />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
             </Route>
           </Route>
         </Routes>

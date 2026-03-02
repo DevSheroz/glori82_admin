@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Plus, ShoppingCart, Pencil, Trash2, X, Package, Archive } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '../../contexts/AuthContext'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
 import Table from '../../components/Table'
@@ -33,7 +34,7 @@ const cardPaymentColors = {
 
 const chevronSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`
 
-function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchive, onStatusChange, onPaymentStatusChange }) {
+function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchive, onStatusChange, onPaymentStatusChange, isAdmin }) {
   const { t } = useTranslation()
 
   const cardStatusOptions = [
@@ -54,15 +55,17 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchiv
 
   return (
     <div className={`p-4 space-y-3 transition-colors ${selected ? 'bg-blue-50/40' : ''}`}>
-      {/* Row 1: checkbox + order # + date */}
+      {/* Row 1: checkbox (admin only) + order # + date */}
       <div className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={() => onToggleSelect(order.order_id)}
-          onClick={(e) => e.stopPropagation()}
-          className="mt-0.5 rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
-        />
+        {isAdmin && (
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect(order.order_id)}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-0.5 rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+          />
+        )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-2">
             <span className="font-semibold text-(--color-text-base)">{order.order_number}</span>
@@ -84,7 +87,7 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchiv
 
       {/* Row 2: products */}
       {order.items && order.items.length > 0 && (
-        <div className="ml-7 space-y-1">
+        <div className={`space-y-1 ${isAdmin ? 'ml-7' : ''}`}>
           {order.items.map((it, i) => {
             const inStock = it.from_stock === true
             return (
@@ -108,7 +111,7 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchiv
       )}
 
       {/* Row 3: amounts */}
-      <div className="ml-7 flex items-center gap-5">
+      <div className={`flex items-center gap-5 ${isAdmin ? 'ml-7' : ''}`}>
         <div>
           <div className="text-xs text-(--color-text-muted) mb-0.5">{t('orders.total_uzs')}</div>
           {order.final_amount_uzs != null ? (
@@ -139,60 +142,74 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchiv
         )}
       </div>
 
-      {/* Row 4: status/payment dropdowns + edit/delete */}
-      <div className="ml-7 flex items-center gap-2 flex-wrap">
-        <select
-          value={order.status}
-          onChange={(e) => {
-            e.stopPropagation()
-            if (e.target.value !== order.status) onStatusChange(order.order_id, e.target.value)
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${cardStatusColors[order.status] || ''}`}
-          style={{ backgroundImage: chevronSvg }}
-        >
-          {cardStatusOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-
-        <select
-          value={order.payment_status || 'unpaid'}
-          onChange={(e) => {
-            e.stopPropagation()
-            if (e.target.value !== order.payment_status) onPaymentStatusChange(order.order_id, e.target.value, order)
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${cardPaymentColors[order.payment_status] || cardPaymentColors.unpaid}`}
-          style={{ backgroundImage: chevronSvg }}
-        >
-          {cardPaymentOptions.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
-
-        <div className="ml-auto flex items-center gap-1">
-          <button
-            onClick={onEdit}
-            className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-(--color-text-base) hover:bg-(--color-bg-component) transition-colors"
+      {/* Row 4: status/payment + edit/delete (admin only) */}
+      <div className={`flex items-center gap-2 flex-wrap ${isAdmin ? 'ml-7' : ''}`}>
+        {isAdmin ? (
+          <select
+            value={order.status}
+            onChange={(e) => {
+              e.stopPropagation()
+              if (e.target.value !== order.status) onStatusChange(order.order_id, e.target.value)
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${cardStatusColors[order.status] || ''}`}
+            style={{ backgroundImage: chevronSvg }}
           >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          {order.status === 'completed' && ['paid_card', 'paid_cash'].includes(order.payment_status) && (
+            {cardStatusOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        ) : (
+          <span className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 ${cardStatusColors[order.status] || ''}`}>
+            {cardStatusOptions.find((o) => o.value === order.status)?.label ?? order.status}
+          </span>
+        )}
+
+        {isAdmin ? (
+          <select
+            value={order.payment_status || 'unpaid'}
+            onChange={(e) => {
+              e.stopPropagation()
+              if (e.target.value !== order.payment_status) onPaymentStatusChange(order.order_id, e.target.value, order)
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 cursor-pointer appearance-none pr-6 bg-size-12px bg-position-[right_6px_center] bg-no-repeat ${cardPaymentColors[order.payment_status] || cardPaymentColors.unpaid}`}
+            style={{ backgroundImage: chevronSvg }}
+          >
+            {cardPaymentOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        ) : (
+          <span className={`text-xs font-medium rounded-full px-2.5 py-1 ring-1 ${cardPaymentColors[order.payment_status] || cardPaymentColors.unpaid}`}>
+            {cardPaymentOptions.find((o) => o.value === (order.payment_status || 'unpaid'))?.label ?? order.payment_status}
+          </span>
+        )}
+
+        {isAdmin && (
+          <div className="ml-auto flex items-center gap-1">
             <button
-              onClick={onArchive}
-              className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-amber-600 hover:bg-amber-50 transition-colors"
+              onClick={onEdit}
+              className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-(--color-text-base) hover:bg-(--color-bg-component) transition-colors"
             >
-              <Archive className="w-3.5 h-3.5" />
+              <Pencil className="w-3.5 h-3.5" />
             </button>
-          )}
-          <button
-            onClick={onDelete}
-            className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        </div>
+            {order.status === 'completed' && ['paid_card', 'paid_cash'].includes(order.payment_status) && (
+              <button
+                onClick={onArchive}
+                className="p-1.5 rounded-md text-(--color-text-subtle) hover:text-amber-600 hover:bg-amber-50 transition-colors"
+              >
+                <Archive className="w-3.5 h-3.5" />
+              </button>
+            )}
+            <button
+              onClick={onDelete}
+              className="p-1.5 rounded-md text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -200,6 +217,8 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchiv
 
 export default function OrdersPage() {
   const { t } = useTranslation()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const [orders, setOrders] = useState([])
   const [total, setTotal] = useState(0)
   const [customers, setCustomers] = useState([])
@@ -454,6 +473,7 @@ export default function OrdersPage() {
     sortBy,
     sortDir,
     onSort: handleSort,
+    isAdmin,
   })
 
   const selectClass =
@@ -471,10 +491,12 @@ export default function OrdersPage() {
             {total !== 1 ? t('orders.count_plural', { count: total }) : t('orders.count', { count: total })}
           </p>
         </div>
-        <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
-          <Plus className="w-4 h-4" />
-          {t('orders.add')}
-        </Button>
+        {isAdmin && (
+          <Button variant="primary" onClick={handleCreate} className="self-start sm:self-auto">
+            <Plus className="w-4 h-4" />
+            {t('orders.add')}
+          </Button>
+        )}
       </div>
 
       {/* Filters */}
@@ -534,7 +556,7 @@ export default function OrdersPage() {
       {/* Bulk Actions */}
       <div
         className={`grid transition-all duration-200 ease-out ${
-          selectedIds.size > 0 ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+          isAdmin && selectedIds.size > 0 ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
         }`}
       >
         <div className="overflow-hidden">
@@ -609,15 +631,17 @@ export default function OrdersPage() {
           <>
             {/* Mobile card list */}
             <div className="sm:hidden divide-y divide-(--color-border-base) max-h-[calc(100vh-220px)] overflow-y-auto">
-              <div className="flex items-center gap-3 px-4 py-2.5 bg-(--color-bg-subtle) border-b border-(--color-border-base)">
-                <input
-                  type="checkbox"
-                  checked={orders.length > 0 && selectedIds.size === orders.length}
-                  onChange={toggleAll}
-                  className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
-                />
-                <span className="text-xs text-(--color-text-subtle)">{t('common.select_all')}</span>
-              </div>
+              {isAdmin && (
+                <div className="flex items-center gap-3 px-4 py-2.5 bg-(--color-bg-subtle) border-b border-(--color-border-base)">
+                  <input
+                    type="checkbox"
+                    checked={orders.length > 0 && selectedIds.size === orders.length}
+                    onChange={toggleAll}
+                    className="rounded border-(--color-border-base) text-(--color-primary) focus:ring-(--color-primary) cursor-pointer"
+                  />
+                  <span className="text-xs text-(--color-text-subtle)">{t('common.select_all')}</span>
+                </div>
+              )}
               {orders.map((order) => (
                 <OrderCard
                   key={order.order_id}
@@ -629,6 +653,7 @@ export default function OrdersPage() {
                   onArchive={() => handleArchive([order.order_id])}
                   onStatusChange={handleStatusChange}
                   onPaymentStatusChange={handlePaymentStatusChange}
+                  isAdmin={isAdmin}
                 />
               ))}
             </div>
