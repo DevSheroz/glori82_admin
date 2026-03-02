@@ -95,6 +95,7 @@
     "failed_load": "Failed to load categories. Make sure the backend is running.",
     "failed_save": "Failed to save category. Check the console for details.",
     "failed_delete": "Failed to delete categories.",
+    "deleted_success": "Category(s) deleted.",
     "count": "{{count}} category",
     "count_plural": "{{count}} categories",
     "delete_many_label": "{{count}} categories",
