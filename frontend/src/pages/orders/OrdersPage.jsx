@@ -76,6 +76,11 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchiv
             </span>
           </div>
           <div className="text-sm text-(--color-text-subtle) mt-0.5">{order.customer_name || 'TBA'}</div>
+          {(order.customer_phone || order.customer_city) && (
+            <div className="text-xs text-(--color-text-muted) mt-0.5">
+              {[order.customer_phone, order.customer_city].filter(Boolean).join(' · ')}
+            </div>
+          )}
           {order.shipping_number && (
             <div className="text-xs text-(--color-text-muted) mt-0.5 flex items-center gap-1">
               <Package className="w-3 h-3" />

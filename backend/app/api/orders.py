@@ -131,6 +131,8 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
         "unpaid": unpaid,
         "final_amount_uzs": order.final_amount_uzs,
         "customer_name": order.customer.customer_name if order.customer else None,
+        "customer_phone": order.customer.contact_phone if order.customer else None,
+        "customer_city": order.customer.city if order.customer else None,
         "is_archived": is_archived,
         "items": items,
     }

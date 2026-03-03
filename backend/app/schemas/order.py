@@ -96,6 +96,8 @@ class OrderUpdate(BaseModel):
 class OrderResponse(OrderBase):
     order_id: int
     customer_name: str | None = None
+    customer_phone: str | None = None
+    customer_city: str | None = None
     total_cost: Decimal | None = None
     total_selling_usd: Decimal | None = None
     total_amount_uzs: Decimal | None = None

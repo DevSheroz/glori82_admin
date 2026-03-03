@@ -109,9 +109,14 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
       label: <SortHeader label={t('common.customer')} sortKey="customer_name" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
       minWidth: '120px',
       render: (row) => (
-        <span className="text-(--color-text-subtle)">
-          {row.customer_name || 'TBA'}
-        </span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-(--color-text-subtle)">{row.customer_name || 'TBA'}</span>
+          {(row.customer_phone || row.customer_city) && (
+            <span className="text-xs text-(--color-text-muted)">
+              {[row.customer_phone, row.customer_city].filter(Boolean).join(' · ')}
+            </span>
+          )}
+        </div>
       ),
     },
     {
