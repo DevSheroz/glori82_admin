@@ -34,11 +34,12 @@ function Skeleton({ className = '' }) {
 
 function KpiCard({ icon: Icon, label, value, sub, color = 'indigo', loading }) {
   const colors = {
-    indigo: 'bg-indigo-50 text-indigo-600',
+    indigo:  'bg-indigo-50 text-indigo-600',
     emerald: 'bg-emerald-50 text-emerald-600',
-    amber: 'bg-amber-50 text-amber-600',
-    rose: 'bg-rose-50 text-rose-600',
-    sky: 'bg-sky-50 text-sky-600',
+    amber:   'bg-amber-50 text-amber-600',
+    rose:    'bg-rose-50 text-rose-600',
+    sky:     'bg-sky-50 text-sky-600',
+    brand:   'bg-[#e8cdcc] text-[#900603]',
   }
   return (
     <div className="bg-white rounded-xl border border-(--color-border-base) p-3 sm:p-5 flex flex-col sm:flex-row items-start gap-2 sm:gap-4">
@@ -70,14 +71,22 @@ function Section({ title, children }) {
   )
 }
 
+// ─── Brand palette (from logo) ───────────────────────────────────────────────
+
+const BRAND = {
+  primary:   '#900603',  // logo dark red
+  secondary: '#c97c7a',  // midpoint between primary and light
+  light:     '#e8cdcc',  // logo pink
+}
+
 // ─── Status dot colors ───────────────────────────────────────────────────────
 
 const STATUS_DOT_COLORS = {
-  pending:   '#f59e0b',
-  shipped:   '#6366f1',
-  arrived:   '#0ea5e9',
-  received:  '#8b5cf6',
-  completed: '#22c55e',
+  pending:   '#5c0402',
+  shipped:   '#900603',
+  arrived:   '#c97c7a',
+  received:  '#daa8a7',
+  completed: '#e8cdcc',
 }
 
 // ─── Custom tooltip for charts ───────────────────────────────────────────────
@@ -410,8 +419,8 @@ export default function DashboardPage() {
                 width={55}
               />
               <Tooltip content={<ChartTooltip formatter={v => fmtUSD(v)} />} />
-              <Bar dataKey="revenue_usd" name={t('dashboard.charts.revenue')} fill="#6366f1" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="profit_usd" name={t('dashboard.charts.profit')} fill="#22c55e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="revenue_usd" name={t('dashboard.charts.revenue')} fill={BRAND.primary} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="profit_usd" name={t('dashboard.charts.profit')} fill={BRAND.secondary} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -434,8 +443,8 @@ export default function DashboardPage() {
                 width={55}
               />
               <Tooltip content={<ChartTooltip formatter={v => fmtUSD(v)} />} />
-              <Bar dataKey="revenue_usd" name={t('dashboard.charts.revenue')} fill="#6366f1" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="profit_usd" name={t('dashboard.charts.profit')} fill="#22c55e" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="revenue_usd" name={t('dashboard.charts.revenue')} fill={BRAND.primary} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="profit_usd" name={t('dashboard.charts.profit')} fill={BRAND.secondary} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -461,7 +470,7 @@ export default function DashboardPage() {
                   width={60}
                 />
                 <Tooltip content={<ChartTooltip formatter={(v) => fmtKRW(v)} />} />
-                <Bar dataKey="Product Cost (KRW)" name={t('dashboard.charts.product_cost_krw')} fill="#6366f1" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Product Cost (KRW)" name={t('dashboard.charts.product_cost_krw')} fill={BRAND.primary} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -484,7 +493,7 @@ export default function DashboardPage() {
                   width={50}
                 />
                 <Tooltip content={<ChartTooltip formatter={(v) => fmtUSD(v)} />} />
-                <Bar dataKey="Cargo Cost (USD)" name={t('dashboard.charts.cargo_cost_usd')} fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Cargo Cost (USD)" name={t('dashboard.charts.cargo_cost_usd')} fill={BRAND.secondary} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -544,10 +553,10 @@ export default function DashboardPage() {
                 type="monotone"
                 dataKey="Sales"
                 name={t('dashboard.charts.sales')}
-                stroke="#6366f1"
+                stroke={BRAND.primary}
                 strokeWidth={2}
                 dot={false}
-                activeDot={{ r: 4, fill: '#6366f1' }}
+                activeDot={{ r: 4, fill: BRAND.primary }}
               />
             </LineChart>
           </ResponsiveContainer>
@@ -594,7 +603,7 @@ export default function DashboardPage() {
                     )
                   }}
                 />
-                <Bar dataKey="Revenue" name={t('dashboard.charts.revenue')} fill="#22c55e" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="Revenue" name={t('dashboard.charts.revenue')} fill={BRAND.primary} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -636,7 +645,7 @@ export default function DashboardPage() {
                     )
                   }}
                 />
-                <Bar dataKey="Revenue" name={t('dashboard.charts.revenue')} fill="#6366f1" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="Revenue" name={t('dashboard.charts.revenue')} fill={BRAND.secondary} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           )}

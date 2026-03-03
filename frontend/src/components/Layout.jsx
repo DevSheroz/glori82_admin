@@ -67,9 +67,7 @@ export default function Layout() {
         >
           <Menu className="w-5 h-5" />
         </button>
-        <span className="ml-2 text-base font-semibold text-(--color-text-base)">
-          glori82 Admin
-        </span>
+        <img src="/glori82_logo_clean.svg" alt="glori82" className="ml-2 h-6" />
         <div className="ml-auto">
           <LangDropdown />
         </div>

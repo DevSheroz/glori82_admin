@@ -44,9 +44,11 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
       } h-full shrink-0 bg-white border-r border-(--color-border-base) flex flex-col z-30 transition-all duration-300`}
     >
       <div className="h-14 flex items-center px-3 border-b border-(--color-border-base)">
-        <span className={`text-base font-semibold text-(--color-text-base) tracking-tight pl-2 whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'flex-1 opacity-100'}`}>
-          glori82
-        </span>
+        <img
+          src="/glori82_logo_clean.svg"
+          alt="glori82"
+          className={`h-6 pl-2 whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'flex-1 opacity-100'}`}
+        />
         <button
           onClick={isMobile ? onMobileClose : onToggle}
           className="p-2 shrink-0 rounded-md text-(--color-text-subtle) hover:bg-(--color-bg-subtle) hover:text-(--color-text-base) transition-colors"
