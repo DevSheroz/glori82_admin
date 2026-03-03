@@ -34,9 +34,7 @@ export default function LoginPage() {
       <div className="w-full max-w-100">
         {/* Brand */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-(--color-text-base) tracking-tight">
-            glori82
-          </h1>
+          <img src="/glori82_logo_clean.svg" alt="glori82" className="h-15 mx-auto" />
           <p className="text-sm text-(--color-text-muted) mt-1">
             {t('login.admin_panel')}
           </p>

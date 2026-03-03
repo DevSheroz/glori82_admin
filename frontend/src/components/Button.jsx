@@ -1,6 +1,6 @@
 const variants = {
   primary:
-    'bg-(--color-primary) text-white hover:bg-(--color-primary-hover) active:bg-indigo-700',
+    'bg-(--color-primary) text-white hover:bg-(--color-primary-hover) active:bg-[#5c0402]',
   secondary:
     'bg-white text-(--color-text-base) ring-1 ring-(--color-border-base) hover:bg-(--color-bg-subtle) active:bg-(--color-bg-component)',
   danger:
