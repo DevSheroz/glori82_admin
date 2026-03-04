@@ -47,6 +47,13 @@ export default function ShipmentModal({
     )
   }, [orders, form.order_ids])
 
+  const availableProducts = useMemo(() => {
+    const selectedSet = new Set(form.stock_items.map((si) => si.product_id))
+    return (products || []).filter(
+      (p) => selectedSet.has(p.product_id) || !p._in_shipment
+    )
+  }, [products, form.stock_items])
+
   const selectedOrderDetails = useMemo(() => {
     const orderMap = {}
     for (const o of orders) orderMap[o.order_id] = o
@@ -224,7 +231,7 @@ export default function ShipmentModal({
             className={inputClass}
           >
             <option value="">{t('shipments.modal.select_product')}</option>
-            {(products || [])
+            {availableProducts
               .filter((p) => !form.stock_items.some((si) => si.product_id === p.product_id))
               .map((p) => (
                 <option key={p.product_id} value={p.product_id}>

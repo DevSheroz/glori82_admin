@@ -193,7 +193,19 @@ export default function ShipmentsPage() {
         _in_shipment: ordersInShipments.has(o.order_id),
       }))
       setAllOrders(enrichedOrders)
-      setAllProducts(productsRes.data.data)
+
+      // Mark products that are already in a shipment
+      const productsInShipments = new Set()
+      for (const s of shipmentsRes.data.data) {
+        for (const si of s.stock_items || []) {
+          productsInShipments.add(si.product_id)
+        }
+      }
+      const enrichedProducts = productsRes.data.data.map((p) => ({
+        ...p,
+        _in_shipment: productsInShipments.has(p.product_id),
+      }))
+      setAllProducts(enrichedProducts)
     } catch (err) {
       setError(t('shipments.failed_load'))
       console.error(err)
