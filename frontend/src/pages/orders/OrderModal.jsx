@@ -377,7 +377,7 @@ export default function OrderModal({
     setForm((prev) => {
       const items = prev.items.map((it, i) =>
         i === index
-          ? { ...it, product_id: '', product_name: text }
+          ? { ...it, product_id: '', product_name: text, from_stock: false }
           : it
       )
       return { ...prev, items }
@@ -392,7 +392,7 @@ export default function OrderModal({
     setForm((prev) => {
       const items = prev.items.map((it, i) => {
         if (i !== index) return it
-        const updated = { ...it, product_id: option.value, product_name: option.label }
+        const updated = { ...it, product_id: option.value, product_name: option.label, from_stock: false }
         if (product) {
           updated.cost_price = product.cost_price ?? ''
           updated.selling_price = product.selling_price ?? ''

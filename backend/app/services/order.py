@@ -235,6 +235,26 @@ async def _build_order_items(db: AsyncSession, items_data) -> list[OrderItem]:
     return result
 
 
+async def _deduct_stock(db: AsyncSession, items: list) -> None:
+    for item in items:
+        if item.from_stock and item.product_id:
+            product = await db.get(Product, item.product_id)
+            if product:
+                product.stock_quantity = max(0, (product.stock_quantity or 0) - item.quantity)
+                if product.stock_quantity == 0:
+                    product.stock_status = "out_of_stock"
+
+
+async def _restore_stock(db: AsyncSession, items: list) -> None:
+    for item in items:
+        if item.from_stock and item.product_id:
+            product = await db.get(Product, item.product_id)
+            if product:
+                product.stock_quantity = (product.stock_quantity or 0) + item.quantity
+                if product.stock_status == "out_of_stock":
+                    product.stock_status = "in_stock"
+
+
 _PAID_STATUSES = {"paid_card", "paid_cash"}
 
 
@@ -325,9 +345,11 @@ async def create_order(db: AsyncSession, data: OrderCreate) -> Order:
     if not order_dict.get("order_number"):
         order_dict["order_number"] = await _next_order_number(db)
     order = Order(**order_dict)
-    order.items.extend(await _build_order_items(db, data.items))
+    new_items = await _build_order_items(db, data.items)
+    order.items.extend(new_items)
     db.add(order)
     await db.flush()
+    await _deduct_stock(db, new_items)
     await _apply_customer_budget(order, db)
     await db.commit()
     return await get_order(db, order.order_id)
@@ -360,10 +382,13 @@ async def update_order(db: AsyncSession, order_id: int, data: OrderUpdate) -> Or
         setattr(order, key, value)
 
     if data.items is not None:
+        old_stock_items = [it for it in order.items if it.from_stock and it.product_id]
         new_items = await _build_order_items(db, data.items)
         if new_items or not order.items:
+            await _restore_stock(db, old_stock_items)
             order.items.clear()
             order.items.extend(new_items)
+            await _deduct_stock(db, new_items)
 
     # Lock final UZS amount when order is completed and fully paid
     effective_status = order.status
@@ -379,9 +404,12 @@ async def update_order(db: AsyncSession, order_id: int, data: OrderUpdate) -> Or
 
 
 async def delete_order(db: AsyncSession, order_id: int) -> bool:
-    order = await db.get(Order, order_id)
+    query = select(Order).options(selectinload(Order.items)).where(Order.order_id == order_id)
+    result = await db.execute(query)
+    order = result.scalar_one_or_none()
     if not order:
         return False
+    await _restore_stock(db, order.items)
     await db.delete(order)
     await db.commit()
     return True
