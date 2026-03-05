@@ -5,12 +5,14 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.models.category_attribute import CategoryAttribute
 from app.models.customer import Customer
 from app.models.order import Order
 from app.models.order_item import OrderItem
 from app.models.product import Product
 from app.models.product_attribute_value import ProductAttributeValue
 from app.models.product_category import ProductCategory
+from app.models.shopping_list_override import ShoppingListOverride
 from app.schemas.order import OrderCreate, OrderUpdate
 from app.services.currency import calculate_prices, get_rates
 
@@ -401,6 +403,98 @@ async def update_order(db: AsyncSession, order_id: int, data: OrderUpdate) -> Or
     await _apply_customer_budget(order, db)
     await db.commit()
     return await get_order(db, order_id)
+
+
+async def get_shopping_list(db: AsyncSession) -> list[dict]:
+    """Return items from pending non-archived orders that are not from stock, grouped by product."""
+    query = (
+        select(Order)
+        .where(Order.status == "pending", Order.is_archived == False)
+        .options(
+            selectinload(Order.items)
+                .selectinload(OrderItem.product)
+                .selectinload(Product.category),
+            selectinload(Order.items)
+                .selectinload(OrderItem.product)
+                .selectinload(Product.attribute_values)
+                .selectinload(ProductAttributeValue.attribute),
+            selectinload(Order.customer),
+        )
+    )
+    result = await db.execute(query)
+    orders = list(result.scalars().unique().all())
+
+    # Fetch saved overrides for all relevant item_ids
+    all_item_ids = [item.item_id for order in orders for item in order.items if not item.from_stock]
+    override_map: dict[int, ShoppingListOverride] = {}
+    if all_item_ids:
+        ov_result = await db.execute(
+            select(ShoppingListOverride).where(ShoppingListOverride.item_id.in_(all_item_ids))
+        )
+        for ov in ov_result.scalars().all():
+            override_map[ov.item_id] = ov
+
+    groups: dict = {}
+    for order in orders:
+        for item in order.items:
+            if item.from_stock:
+                continue
+            override = override_map.get(item.item_id)
+            if override and override.is_removed:
+                continue
+            effective_qty = (
+                override.quantity_override
+                if override and override.quantity_override is not None
+                else item.quantity
+            )
+            if effective_qty <= 0:
+                continue
+
+            key = item.product_id if item.product_id else f"name:{item.product_name or '?'}"
+            if key not in groups:
+                product = item.product
+                attrs = None
+                if product and product.attribute_values:
+                    parts = [
+                        f"{av.attribute.attribute_name}: {av.value}"
+                        for av in product.attribute_values
+                        if av.attribute
+                    ]
+                    attrs = ", ".join(parts) if parts else None
+                groups[key] = {
+                    "product_id": item.product_id,
+                    "product_name": product.product_name if product else (item.product_name or "—"),
+                    "brand": product.brand if product else None,
+                    "category_name": product.category.category_name if product and product.category else None,
+                    "product_attributes": attrs,
+                    "orders": [],
+                }
+            groups[key]["orders"].append({
+                "item_id": item.item_id,
+                "order_id": order.order_id,
+                "order_number": order.order_number,
+                "customer_name": order.customer.customer_name if order.customer else None,
+                "quantity": effective_qty,
+            })
+
+    # Compute total_quantity from remaining orders
+    result_list = []
+    for group in groups.values():
+        group["total_quantity"] = sum(o["quantity"] for o in group["orders"])
+        result_list.append(group)
+    return result_list
+
+
+async def upsert_shopping_override(
+    db: AsyncSession, item_id: int, quantity_override: int | None, is_removed: bool
+) -> None:
+    override = await db.get(ShoppingListOverride, item_id)
+    if override is None:
+        override = ShoppingListOverride(item_id=item_id)
+        db.add(override)
+    override.quantity_override = quantity_override
+    override.is_removed = is_removed
+    await db.commit()
 
 
 async def delete_order(db: AsyncSession, order_id: int) -> bool:

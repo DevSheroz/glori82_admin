@@ -8,6 +8,7 @@ import LoginPage from './pages/auth/LoginPage'
 import InventoryPage from './pages/inventory/InventoryPage'
 import OrdersPage from './pages/orders/OrdersPage'
 import ArchivedOrdersPage from './pages/orders/ArchivedOrdersPage'
+import ShoppingListPage from './pages/orders/ShoppingListPage'
 import CustomersPage from './pages/customers/CustomersPage'
 import CategoriesPage from './pages/categories/CategoriesPage'
 import ShipmentsPage from './pages/shipments/ShipmentsPage'
@@ -30,6 +31,7 @@ export default function App() {
               <Route path="shipments" element={<ShipmentsPage />} />
               <Route element={<AdminRoute />}>
                 <Route path="archived" element={<ArchivedOrdersPage />} />
+                <Route path="shopping" element={<ShoppingListPage />} />
                 <Route path="categories" element={<CategoriesPage />} />
                 <Route path="dashboard" element={<DashboardPage />} />
                 <Route path="settings" element={<SettingsPage />} />

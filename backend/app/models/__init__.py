@@ -6,6 +6,7 @@ from app.models.product import Product
 from app.models.product_attribute_value import ProductAttributeValue
 from app.models.product_category import ProductCategory
 from app.models.shipment import Shipment, ShipmentOrder, ShipmentStockItem
+from app.models.shopping_list_override import ShoppingListOverride
 from app.models.user import User
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "Shipment",
     "ShipmentOrder",
     "ShipmentStockItem",
+    "ShoppingListOverride",
     "User",
 ]

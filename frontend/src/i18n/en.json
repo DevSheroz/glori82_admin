@@ -7,7 +7,8 @@
     "customers": "Customers",
     "categories": "Categories",
     "shipments": "Shipments",
-    "settings": "Settings"
+    "settings": "Settings",
+    "shopping": "Shopping List"
   },
   "common": {
     "edit": "Edit",
@@ -36,7 +37,8 @@
     "failed_load": "Failed to load data. Make sure the backend is running.",
     "logout": "Logout",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "sort_by": "Sort by"
   },
   "login": {
     "admin_panel": "Admin Panel",
@@ -376,6 +378,16 @@
     "error_name_required": "Name is required",
     "error_username_required": "Username is required",
     "error_password_required": "Password is required"
+  },
+  "shopping": {
+    "title": "Shopping List",
+    "subtitle": "Items to buy",
+    "failed_load": "Failed to load shopping list.",
+    "no_items": "Nothing to buy",
+    "no_items_desc": "All items in pending orders are already in stock.",
+    "total_qty": "Total Qty",
+    "needed_by": "Needed by",
+    "search_placeholder": "Search products, brands, customers..."
   },
   "dashboard": {
     "title": "Dashboard",

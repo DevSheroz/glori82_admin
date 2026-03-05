@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.models.order import Order
-from app.schemas.order import OrderCreate, OrderResponse, OrderUpdate
+from app.schemas.order import OrderCreate, OrderResponse, OrderUpdate, ShoppingOverride
 from app.schemas.pagination import PaginatedResponse
 from app.services import order as order_service
 from app.services.currency import get_rates
@@ -180,6 +180,17 @@ async def list_orders(
         page=page,
         page_size=page_size,
     )
+
+
+@router.get("/shopping-list")
+async def get_shopping_list(db: AsyncSession = Depends(get_db)):
+    return await order_service.get_shopping_list(db)
+
+
+@router.patch("/shopping-list/override")
+async def save_shopping_override(data: ShoppingOverride, db: AsyncSession = Depends(get_db)):
+    await order_service.upsert_shopping_override(db, data.item_id, data.quantity_override, data.is_removed)
+    return {"ok": True}
 
 
 @router.get("/{order_id}", response_model=OrderResponse)

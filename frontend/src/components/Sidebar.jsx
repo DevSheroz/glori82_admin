@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Package,
   ShoppingCart,
+  ShoppingBag,
   Archive,
   Users,
   FolderTree,
@@ -83,6 +84,23 @@ export default function Sidebar({ collapsed, onToggle, onMobileClose, isMobile }
       </nav>
       {user && (
         <div className="px-3 pb-1 space-y-0.5">
+          {user.role === 'admin' && (
+            <NavLink
+              to="/shopping"
+              onClick={onMobileClose}
+              title={isCollapsed ? t('nav.shopping') : undefined}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium overflow-hidden whitespace-nowrap transition-colors ${
+                  isActive
+                    ? 'bg-(--color-bg-component) text-(--color-text-base)'
+                    : 'text-(--color-text-subtle) hover:bg-(--color-bg-subtle) hover:text-(--color-text-base)'
+                }`
+              }
+            >
+              <ShoppingBag className="w-4 h-4 shrink-0" strokeWidth={2} />
+              {!isCollapsed && t('nav.shopping')}
+            </NavLink>
+          )}
           {user.role === 'admin' && (
             <NavLink
               to="/archived"

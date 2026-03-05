@@ -10,6 +10,12 @@ ORDER_STATUSES = Literal["pending", "shipped", "arrived", "received", "completed
 PAYMENT_STATUSES = Literal["unpaid", "paid_card", "paid_cash", "partial", "prepayment"]
 
 
+class ShoppingOverride(BaseModel):
+    item_id: int
+    quantity_override: int | None = None
+    is_removed: bool = False
+
+
 class OrderItemBase(BaseModel):
     product_id: int | None = None
     quantity: int = 1
