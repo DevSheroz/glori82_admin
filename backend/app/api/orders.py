@@ -187,6 +187,11 @@ async def get_shopping_list(db: AsyncSession = Depends(get_db)):
     return await order_service.get_shopping_list(db)
 
 
+@router.delete("/shopping-list/overrides", status_code=204)
+async def reset_shopping_overrides(db: AsyncSession = Depends(get_db)):
+    await order_service.reset_shopping_overrides(db)
+
+
 @router.patch("/shopping-list/override")
 async def save_shopping_override(data: ShoppingOverride, db: AsyncSession = Depends(get_db)):
     await order_service.upsert_shopping_override(db, data.item_id, data.quantity_override, data.is_removed)

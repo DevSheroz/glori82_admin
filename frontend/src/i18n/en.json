@@ -387,7 +387,8 @@
     "no_items_desc": "All items in pending orders are already in stock.",
     "total_qty": "Total Qty",
     "needed_by": "Needed by",
-    "search_placeholder": "Search products, brands, customers..."
+    "search_placeholder": "Search products, brands, customers...",
+    "reset": "Reset"
   },
   "dashboard": {
     "title": "Dashboard",

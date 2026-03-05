@@ -485,6 +485,12 @@ async def get_shopping_list(db: AsyncSession) -> list[dict]:
     return result_list
 
 
+async def reset_shopping_overrides(db: AsyncSession) -> None:
+    from sqlalchemy import delete as sa_delete
+    await db.execute(sa_delete(ShoppingListOverride))
+    await db.commit()
+
+
 async def upsert_shopping_override(
     db: AsyncSession, item_id: int, quantity_override: int | None, is_removed: bool
 ) -> None:

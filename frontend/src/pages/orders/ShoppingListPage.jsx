@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { ShoppingBag, X, ChevronUp, ChevronDown } from 'lucide-react'
+import { ShoppingBag, X, ChevronUp, ChevronDown, RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import Container from '../../components/Container'
 import Button from '../../components/Button'
@@ -14,6 +14,7 @@ export default function ShoppingListPage() {
   const [sortBy, setSortBy] = useState(null)
   const [sortDir, setSortDir] = useState('asc')
   const [search, setSearch] = useState('')
+  const [inputValues, setInputValues] = useState({})
   const debounceTimers = useRef({})
 
   const fetchData = useCallback(async () => {
@@ -32,11 +33,23 @@ export default function ShoppingListPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  const handleRemoveOrder = async (productIdx, itemId) => {
+  const handleReset = async () => {
+    try {
+      await ordersApi.resetOverrides()
+      setInputValues({})
+      await fetchData()
+    } catch (err) {
+      console.error(err)
+    }
+  }
+
+  const productKey = (item) => item.product_id ?? `name:${item.product_name}`
+
+  const handleRemoveOrder = async (pKey, itemId) => {
     setItems((prev) =>
       prev
-        .map((item, i) =>
-          i !== productIdx
+        .map((item) =>
+          productKey(item) !== pKey
             ? item
             : { ...item, orders: item.orders.filter((o) => o.item_id !== itemId) }
         )
@@ -86,34 +99,26 @@ export default function ShoppingListPage() {
     </span>
   )
 
-  const handleQtyChange = (productIdx, itemId, rawVal) => {
-    const qty = Math.max(0, parseInt(rawVal) || 0)
-
-    setItems((prev) =>
-      prev
-        .map((item, i) => {
-          if (i !== productIdx) return item
-          if (qty === 0) return { ...item, orders: item.orders.filter((o) => o.item_id !== itemId) }
-          return {
-            ...item,
-            orders: item.orders.map((o) => (o.item_id === itemId ? { ...o, quantity: qty } : o)),
-          }
-        })
-        .filter((item) => item.orders.length > 0)
-    )
+  const handleQtyChange = (pKey, itemId, rawVal) => {
+    // Show raw string while typing — don't touch items state yet
+    setInputValues((prev) => ({ ...prev, [itemId]: rawVal }))
 
     clearTimeout(debounceTimers.current[itemId])
     debounceTimers.current[itemId] = setTimeout(async () => {
-      try {
-        if (qty === 0) {
-          await ordersApi.saveOverride({ item_id: itemId, is_removed: true })
-        } else {
-          await ordersApi.saveOverride({ item_id: itemId, quantity_override: qty, is_removed: false })
-        }
-      } catch (err) {
-        console.error(err)
+      const qty = parseInt(rawVal)
+      if (!isNaN(qty) && qty > 0) {
+        // Valid — update state and clear raw input (input now shows saved value)
+        setItems((prev) =>
+          prev.map((item) => {
+            if (productKey(item) !== pKey) return item
+            return { ...item, orders: item.orders.map((o) => (o.item_id === itemId ? { ...o, quantity: qty } : o)) }
+          })
+        )
+        setInputValues((prev) => { const n = { ...prev }; delete n[itemId]; return n })
+        try { await ordersApi.saveOverride({ item_id: itemId, quantity_override: qty, is_removed: false }) } catch (e) { console.error(e) }
       }
-    }, 500)
+      // Invalid — leave inputValues alone so user can keep editing
+    }, 800)
   }
 
   return (
@@ -127,13 +132,23 @@ export default function ShoppingListPage() {
             {t('shopping.subtitle')}
           </p>
         </div>
-        <input
-          type="text"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t('shopping.search_placeholder')}
-          className="w-full sm:w-56 rounded-md ring-1 ring-(--color-border-base) bg-white px-3 py-1.5 text-sm text-(--color-text-base) placeholder:text-(--color-text-muted) focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
-        />
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={t('shopping.search_placeholder')}
+            className="w-full sm:w-56 rounded-md ring-1 ring-(--color-border-base) bg-white px-3 py-1.5 text-sm text-(--color-text-base) placeholder:text-(--color-text-muted) focus:outline-none focus:ring-2 focus:ring-(--color-primary)"
+          />
+          <button
+            onClick={handleReset}
+            title={t('shopping.reset')}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-(--color-text-subtle) ring-1 ring-(--color-border-base) hover:text-(--color-danger) hover:ring-red-300 hover:bg-red-50 transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{t('shopping.reset')}</span>
+          </button>
+        </div>
       </div>
 
       <Container className="p-0!">
@@ -173,10 +188,11 @@ export default function ShoppingListPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-(--color-border-base)">
-                  {sortedItems.map((item, i) => {
+                  {sortedItems.map((item) => {
+                    const pKey = productKey(item)
                     const totalQty = item.orders.reduce((s, o) => s + o.quantity, 0)
                     return (
-                      <tr key={item.product_id ?? i} className="hover:bg-(--color-bg-subtle)/50 transition-colors">
+                      <tr key={pKey} className="hover:bg-(--color-bg-subtle)/50 transition-colors">
                         <td className="px-4 py-3">
                           <div className="font-medium text-(--color-text-base)">{item.product_name}</div>
                           {item.product_attributes && (
@@ -198,13 +214,13 @@ export default function ShoppingListPage() {
                                 <input
                                   type="number"
                                   min="0"
-                                  value={o.quantity}
-                                  onChange={(e) => handleQtyChange(i, o.item_id, e.target.value)}
+                                  value={inputValues[o.item_id] ?? o.quantity}
+                                  onChange={(e) => handleQtyChange(pKey, o.item_id, e.target.value)}
                                   className="w-8 text-center bg-transparent text-(--color-text-muted) tabular-nums focus:outline-none focus:text-(--color-text-base) [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                 />
                                 <button
                                   type="button"
-                                  onClick={() => handleRemoveOrder(i, o.item_id)}
+                                  onClick={() => handleRemoveOrder(pKey, o.item_id)}
                                   className="text-(--color-text-muted) hover:text-(--color-danger) transition-colors cursor-pointer"
                                 >
                                   <X className="w-3 h-3" />
@@ -235,10 +251,11 @@ export default function ShoppingListPage() {
                   </button>
                 ))}
               </div>
-              {sortedItems.map((item, i) => {
+              {sortedItems.map((item) => {
+                const pKey = productKey(item)
                 const totalQty = item.orders.reduce((s, o) => s + o.quantity, 0)
                 return (
-                  <div key={item.product_id ?? i} className="px-4 py-3 space-y-1.5">
+                  <div key={pKey} className="px-4 py-3 space-y-1.5">
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <span className="font-medium text-(--color-text-base)">{item.product_name}</span>
@@ -262,13 +279,13 @@ export default function ShoppingListPage() {
                           <input
                             type="number"
                             min="0"
-                            value={o.quantity}
-                            onChange={(e) => handleQtyChange(i, o.item_id, e.target.value)}
+                            value={inputValues[o.item_id] ?? o.quantity}
+                            onChange={(e) => handleQtyChange(pKey, o.item_id, e.target.value)}
                             className="w-8 text-center bg-transparent text-(--color-text-muted) tabular-nums focus:outline-none focus:text-(--color-text-base) [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           />
                           <button
                             type="button"
-                            onClick={() => handleRemoveOrder(i, o.item_id)}
+                            onClick={() => handleRemoveOrder(pKey, o.item_id)}
                             className="text-(--color-text-muted) hover:text-(--color-danger) transition-colors cursor-pointer"
                           >
                             <X className="w-3 h-3" />

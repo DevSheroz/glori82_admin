@@ -387,7 +387,8 @@
     "no_items_desc": "Товары для закупки",
     "total_qty": "Итого",
     "needed_by": "Заказали",
-    "search_placeholder": "Поиск по товару, бренду, клиенту..."
+    "search_placeholder": "Поиск по товару, бренду, клиенту...",
+    "reset": "Сбросить"
   },
   "dashboard": {
     "title": "Главная",

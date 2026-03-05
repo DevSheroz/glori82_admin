@@ -67,6 +67,7 @@ export const ordersApi = {
   getAll: (params) => api.get('/orders', { params }),
   getShoppingList: () => api.get('/orders/shopping-list'),
   saveOverride: (data) => api.patch('/orders/shopping-list/override', data),
+  resetOverrides: () => api.delete('/orders/shopping-list/overrides'),
   getById: (id) => api.get(`/orders/${id}`),
   create: (data) => api.post('/orders', data),
   update: (id, data) => api.put(`/orders/${id}`, data),
