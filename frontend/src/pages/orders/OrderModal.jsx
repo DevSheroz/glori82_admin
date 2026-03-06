@@ -502,7 +502,7 @@ export default function OrderModal({
     const totalKg = (weightGrams / 1000) * qty
     const newItem = {
       category_id: product.category_id ?? '',
-      category_name: product.category?.category_name || '',
+      category_name: product.category?.category_name || categories.find((c) => c.category_id === product.category_id)?.category_name || '',
       brand: product.brand ?? '',
       product_id: product.product_id,
       product_name: product.product_name,
