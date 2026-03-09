@@ -1,3 +1,5 @@
+from app.models.activity_log import ActivityLog
+from app.models.app_settings import AppSettings
 from app.models.category_attribute import CategoryAttribute
 from app.models.customer import Customer
 from app.models.order import Order
@@ -10,6 +12,8 @@ from app.models.shopping_list_override import ShoppingListOverride
 from app.models.user import User
 
 __all__ = [
+    "ActivityLog",
+    "AppSettings",
     "CategoryAttribute",
     "Customer",
     "Order",

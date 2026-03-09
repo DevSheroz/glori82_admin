@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { Menu, Globe, ChevronDown, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import Sidebar from './Sidebar'
+import LogPanel from './LogPanel'
 
 function LangDropdown() {
   const { i18n } = useTranslation()
@@ -68,7 +69,8 @@ export default function Layout() {
           <Menu className="w-5 h-5" />
         </button>
         <img src="/glori82_logo_clean.svg" alt="glori82" className="ml-2 h-6" />
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-1">
+          <LogPanel />
           <LangDropdown />
         </div>
       </div>
@@ -100,7 +102,8 @@ export default function Layout() {
       {/* Right column: desktop topbar + content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Desktop top bar */}
-        <div className="hidden md:flex h-12 shrink-0 bg-white border-b border-(--color-border-base) items-center justify-end px-6">
+        <div className="hidden md:flex h-12 shrink-0 bg-white border-b border-(--color-border-base) items-center justify-end gap-1 px-6">
+          <LogPanel />
           <LangDropdown />
         </div>
 

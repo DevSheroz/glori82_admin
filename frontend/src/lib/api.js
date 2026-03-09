@@ -98,6 +98,12 @@ export const usersApi = {
   delete: (id) => api.delete(`/users/${id}`),
 }
 
+export const logsApi = {
+  getLogs: () => api.get('/logs'),
+  getUnreadCount: () => api.get('/logs/unread-count'),
+  markSeen: () => api.post('/logs/mark-seen'),
+}
+
 export const shipmentsApi = {
   getAll: (params) => api.get('/shipments', { params }),
   getById: (id) => api.get(`/shipments/${id}`),

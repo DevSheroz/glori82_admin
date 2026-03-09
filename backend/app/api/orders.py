@@ -5,7 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.security import get_current_user
+from app.models.activity_log import ActivityLog
 from app.models.order import Order
+from app.models.user import User
 from app.schemas.order import OrderCreate, OrderResponse, OrderUpdate, ShoppingOverride
 from app.schemas.pagination import PaginatedResponse
 from app.services import order as order_service
@@ -138,6 +141,52 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
     }
 
 
+async def _write_order_logs(
+    db: AsyncSession,
+    user: User,
+    order: Order,
+    old_status: str,
+    old_payment_status: str,
+    old_paid_card: Decimal,
+    old_paid_cash: Decimal,
+) -> None:
+    logs = []
+
+    def _log(action: str, field: str, old_val: str, new_val: str):
+        logs.append(ActivityLog(
+            user_id=user.user_id,
+            user_name=user.name,
+            user_role=user.role,
+            order_id=order.order_id,
+            order_number=order.order_number,
+            action=action,
+            field=field,
+            old_value=old_val,
+            new_value=new_val,
+        ))
+
+    if order.status != old_status:
+        _log("status_changed", "status", old_status, order.status)
+
+    if order.payment_status != old_payment_status:
+        _log("payment_status_changed", "payment_status", old_payment_status, order.payment_status)
+
+    new_paid_card = order.paid_card or Decimal(0)
+    new_paid_cash = order.paid_cash or Decimal(0)
+    norm_old_card = old_paid_card or Decimal(0)
+    norm_old_cash = old_paid_cash or Decimal(0)
+
+    if new_paid_card != norm_old_card:
+        _log("payment_amount_changed", "paid_card", str(norm_old_card), str(new_paid_card))
+
+    if new_paid_cash != norm_old_cash:
+        _log("payment_amount_changed", "paid_cash", str(norm_old_cash), str(new_paid_cash))
+
+    if logs:
+        db.add_all(logs)
+        await db.commit()
+
+
 async def _usd_to_uzs_rate() -> Decimal:
     try:
         r = await get_rates()
@@ -215,16 +264,31 @@ async def create_order(data: OrderCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.put("/{order_id}", response_model=OrderResponse)
-async def update_order(order_id: int, data: OrderUpdate, db: AsyncSession = Depends(get_db)):
+async def update_order(
+    order_id: int,
+    data: OrderUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    existing = await db.get(Order, order_id)
+    if not existing:
+        raise HTTPException(status_code=404, detail="Order not found")
+
     if data.is_archived is True:
-        existing = await db.get(Order, order_id)
-        if not existing:
-            raise HTTPException(status_code=404, detail="Order not found")
         if existing.status != "completed" or existing.payment_status not in ("paid_card", "paid_cash"):
             raise HTTPException(status_code=400, detail="Only completed and fully paid orders can be archived")
+
+    old_status = existing.status
+    old_payment_status = existing.payment_status
+    old_paid_card = existing.paid_card or Decimal(0)
+    old_paid_cash = existing.paid_cash or Decimal(0)
+
     order = await order_service.update_order(db, order_id, data)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
+
+    await _write_order_logs(db, current_user, order, old_status, old_payment_status, old_paid_card, old_paid_cash)
+
     rate = await _usd_to_uzs_rate()
     return _order_to_response(order, rate)
 
