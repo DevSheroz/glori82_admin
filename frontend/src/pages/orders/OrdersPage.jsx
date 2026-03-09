@@ -34,7 +34,7 @@ const cardPaymentColors = {
 
 const chevronSvg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`
 
-function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchive, onStatusChange, onPaymentStatusChange, isAdmin }) {
+function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchive, onStatusChange, onPaymentStatusChange, isAdmin, canChangeStatus }) {
   const { t } = useTranslation()
 
   const cardStatusOptions = [
@@ -149,7 +149,7 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchiv
 
       {/* Row 4: status/payment + edit/delete (admin only) */}
       <div className={`flex items-center gap-2 flex-wrap ${isAdmin ? 'ml-7' : ''}`}>
-        {isAdmin ? (
+        {canChangeStatus ? (
           <select
             value={order.status}
             onChange={(e) => {
@@ -170,7 +170,7 @@ function OrderCard({ order, selected, onToggleSelect, onEdit, onDelete, onArchiv
           </span>
         )}
 
-        {isAdmin ? (
+        {canChangeStatus ? (
           <select
             value={order.payment_status || 'unpaid'}
             onChange={(e) => {
@@ -224,6 +224,7 @@ export default function OrdersPage() {
   const { t } = useTranslation()
   const { user } = useAuth()
   const isAdmin = user?.role === 'admin'
+  const canChangeStatus = user?.role === 'admin' || user?.role === 'moderator'
   const [orders, setOrders] = useState([])
   const [total, setTotal] = useState(0)
   const [customers, setCustomers] = useState([])
@@ -479,6 +480,7 @@ export default function OrdersPage() {
     sortDir,
     onSort: handleSort,
     isAdmin,
+    canChangeStatus,
   })
 
   const selectClass =
@@ -659,6 +661,7 @@ export default function OrdersPage() {
                   onStatusChange={handleStatusChange}
                   onPaymentStatusChange={handlePaymentStatusChange}
                   isAdmin={isAdmin}
+                  canChangeStatus={canChangeStatus}
                 />
               ))}
             </div>

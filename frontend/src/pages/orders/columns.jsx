@@ -48,7 +48,7 @@ function uniqueList(items, key) {
   ))
 }
 
-export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected, sortBy, sortDir, onSort, isAdmin }) {
+export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds, onToggleSelect, onToggleAll, allSelected, sortBy, sortDir, onSort, isAdmin, canChangeStatus }) {
   const { t } = useTranslation()
 
   const statusOptions = [
@@ -267,7 +267,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     {
       key: 'status',
       label: <SortHeader label={t('common.status')} sortKey="status" sortBy={sortBy} sortDir={sortDir} onSort={onSort} />,
-      render: (row) => isAdmin ? (
+      render: (row) => canChangeStatus ? (
         <select
           value={row.status}
           onChange={(e) => {
@@ -293,7 +293,7 @@ export function getColumns({ onStatusChange, onPaymentStatusChange, selectedIds,
     {
       key: 'payment_status',
       label: t('orders.payment_col'),
-      render: (row) => isAdmin ? (
+      render: (row) => canChangeStatus ? (
         <select
           value={row.payment_status || 'unpaid'}
           onChange={(e) => {
