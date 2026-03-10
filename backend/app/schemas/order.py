@@ -34,10 +34,19 @@ class OrderItemCreate(OrderItemBase):
     attribute_values: list[ProductAttributeValueCreate] | None = None
 
 
+class OrderItemAttributeValueResponse(BaseModel):
+    attribute_id: int
+    attribute_name: str | None = None
+    value: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class OrderItemResponse(OrderItemBase):
     item_id: int
     product_name: str | None = None
     product_attributes: str | None = None
+    attribute_values: list[OrderItemAttributeValueResponse] = []
     packaged_weight_grams: int | None = None
     brand: str | None = None
     category_name: str | None = None

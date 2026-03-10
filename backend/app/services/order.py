@@ -9,6 +9,7 @@ from app.models.category_attribute import CategoryAttribute
 from app.models.customer import Customer
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.models.order_item_attribute_value import OrderItemAttributeValue
 from app.models.product import Product
 from app.models.product_attribute_value import ProductAttributeValue
 from app.models.product_category import ProductCategory
@@ -78,7 +79,8 @@ async def get_orders(
     offset = (page - 1) * page_size
     query = (
         base.options(
-            selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.attribute_values).selectinload(ProductAttributeValue.attribute),
+            selectinload(Order.items).selectinload(OrderItem.attribute_values).selectinload(OrderItemAttributeValue.attribute),
+            selectinload(Order.items).selectinload(OrderItem.product),
             selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.category),
             selectinload(Order.customer),
         )
@@ -94,7 +96,8 @@ async def get_order(db: AsyncSession, order_id: int) -> Order | None:
     query = (
         select(Order)
         .options(
-            selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.attribute_values).selectinload(ProductAttributeValue.attribute),
+            selectinload(Order.items).selectinload(OrderItem.attribute_values).selectinload(OrderItemAttributeValue.attribute),
+            selectinload(Order.items).selectinload(OrderItem.product),
             selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.category),
             selectinload(Order.customer),
         )
@@ -195,7 +198,7 @@ async def _build_order_items(db: AsyncSession, items_data) -> list[OrderItem]:
             continue
         item_fields["product_id"] = product_id
 
-        product = await db.get(Product, product_id, options=[selectinload(Product.attribute_values)])
+        product = await db.get(Product, product_id)
         if product:
             if item_fields.get("cost_price") is None:
                 item_fields["cost_price"] = product.cost_price
@@ -206,34 +209,23 @@ async def _build_order_items(db: AsyncSession, items_data) -> list[OrderItem]:
             if item_fields.get("packaged_weight_grams") is not None:
                 product.packaged_weight_grams = item_fields["packaged_weight_grams"]
 
-            # Sync attribute values for existing products
-            attr_values = item_fields.get("attribute_values")
-            if attr_values is not None:
-                # Build a map of incoming attribute values
-                incoming = {}
-                for av in attr_values:
-                    av_data = av if isinstance(av, dict) else av.model_dump()
-                    if av_data.get("attribute_id") and av_data.get("value"):
-                        incoming[av_data["attribute_id"]] = av_data["value"]
-
-                # Update existing, remove missing, add new
-                existing_map = {pav.attribute_id: pav for pav in product.attribute_values}
-                for attr_id, value in incoming.items():
-                    if attr_id in existing_map:
-                        existing_map[attr_id].value = value
-                    else:
-                        db.add(ProductAttributeValue(
-                            product_id=product.product_id,
-                            attribute_id=attr_id,
-                            value=value,
-                        ))
-                for attr_id, pav in existing_map.items():
-                    if attr_id not in incoming:
-                        await db.delete(pav)
+        # Build per-item attribute values (stored on the order item, not the product)
+        raw_avs = item_fields.get("attribute_values") or []
+        item_avs = [
+            OrderItemAttributeValue(
+                attribute_id=(av if isinstance(av, dict) else av.model_dump())["attribute_id"],
+                value=(av if isinstance(av, dict) else av.model_dump())["value"],
+            )
+            for av in raw_avs
+            if (av if isinstance(av, dict) else av.model_dump()).get("attribute_id")
+            and (av if isinstance(av, dict) else av.model_dump()).get("value")
+        ]
 
         for key in ITEM_EXTRA_FIELDS:
             item_fields.pop(key, None)
-        result.append(OrderItem(**item_fields))
+        order_item = OrderItem(**item_fields)
+        order_item.attribute_values = item_avs
+        result.append(order_item)
     return result
 
 
@@ -388,8 +380,35 @@ async def update_order(db: AsyncSession, order_id: int, data: OrderUpdate) -> Or
         new_items = await _build_order_items(db, data.items)
         if new_items or not order.items:
             await _restore_stock(db, old_stock_items)
+
+            # Preserve shopping list overrides across item replacement.
+            # order.items.clear() will cascade-delete overrides, so we save
+            # them by product_id (stable key) and restore them after flush.
+            non_stock_item_ids = [it.item_id for it in order.items if not it.from_stock and it.product_id]
+            override_by_product: dict[int, ShoppingListOverride] = {}
+            if non_stock_item_ids:
+                ov_rows = await db.execute(
+                    select(ShoppingListOverride).where(ShoppingListOverride.item_id.in_(non_stock_item_ids))
+                )
+                item_to_product = {it.item_id: it.product_id for it in order.items if it.product_id}
+                for ov in ov_rows.scalars().all():
+                    pid = item_to_product.get(ov.item_id)
+                    if pid:
+                        override_by_product[pid] = ov
+
             order.items.clear()
             order.items.extend(new_items)
+            await db.flush()  # assign new item_ids before restoring overrides
+
+            for item in new_items:
+                if item.product_id and item.product_id in override_by_product:
+                    old_ov = override_by_product[item.product_id]
+                    db.add(ShoppingListOverride(
+                        item_id=item.item_id,
+                        quantity_override=old_ov.quantity_override,
+                        is_removed=old_ov.is_removed,
+                    ))
+
             await _deduct_stock(db, new_items)
 
     # Lock final UZS amount when order is completed and fully paid
@@ -411,13 +430,8 @@ async def get_shopping_list(db: AsyncSession) -> list[dict]:
         select(Order)
         .where(Order.status == "pending", Order.is_archived == False)
         .options(
-            selectinload(Order.items)
-                .selectinload(OrderItem.product)
-                .selectinload(Product.category),
-            selectinload(Order.items)
-                .selectinload(OrderItem.product)
-                .selectinload(Product.attribute_values)
-                .selectinload(ProductAttributeValue.attribute),
+            selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.category),
+            selectinload(Order.items).selectinload(OrderItem.attribute_values).selectinload(OrderItemAttributeValue.attribute),
             selectinload(Order.customer),
         )
     )
@@ -454,10 +468,10 @@ async def get_shopping_list(db: AsyncSession) -> list[dict]:
             if key not in groups:
                 product = item.product
                 attrs = None
-                if product and product.attribute_values:
+                if item.attribute_values:
                     parts = [
                         f"{av.attribute.attribute_name}: {av.value}"
-                        for av in product.attribute_values
+                        for av in item.attribute_values
                         if av.attribute
                     ]
                     attrs = ", ".join(parts) if parts else None

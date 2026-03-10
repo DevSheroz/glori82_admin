@@ -4,6 +4,7 @@ from app.models.category_attribute import CategoryAttribute
 from app.models.customer import Customer
 from app.models.order import Order
 from app.models.order_item import OrderItem
+from app.models.order_item_attribute_value import OrderItemAttributeValue
 from app.models.product import Product
 from app.models.product_attribute_value import ProductAttributeValue
 from app.models.product_category import ProductCategory
@@ -18,6 +19,7 @@ __all__ = [
     "Customer",
     "Order",
     "OrderItem",
+    "OrderItemAttributeValue",
     "Product",
     "ProductAttributeValue",
     "ProductCategory",

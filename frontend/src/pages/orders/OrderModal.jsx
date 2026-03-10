@@ -200,7 +200,10 @@ export default function OrderModal({
                 weight_grams: weightGrams || '',
                 cargo: totalWeightKg ? (totalWeightKg * 12).toFixed(2) : '',
                 customer_cargo: totalWeightKg ? (totalWeightKg * 13).toFixed(2) : '',
-                attribute_values: (product?.attribute_values || []).map((av) => ({
+                attribute_values: (it.attribute_values?.length
+                  ? it.attribute_values
+                  : (product?.attribute_values || [])
+                ).map((av) => ({
                   attribute_id: av.attribute_id,
                   attribute_name: av.attribute_name,
                   value: av.value,

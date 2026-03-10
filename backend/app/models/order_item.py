@@ -20,3 +20,6 @@ class OrderItem(Base):
 
     order: Mapped["Order"] = relationship(back_populates="items")
     product: Mapped["Product | None"] = relationship(back_populates="order_items")
+    attribute_values: Mapped[list["OrderItemAttributeValue"]] = relationship(
+        back_populates="item", cascade="all, delete-orphan"
+    )

@@ -17,12 +17,13 @@ from app.services.currency import get_rates
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
-def _format_product_attributes(product) -> str | None:
-    if not product or not product.attribute_values:
+def _format_item_attributes(item) -> str | None:
+    if not item.attribute_values:
         return None
     parts = [
         f"{av.attribute.attribute_name}: {av.value}"
-        for av in product.attribute_values
+        for av in item.attribute_values
+        if av.attribute
     ]
     return ", ".join(parts) if parts else None
 
@@ -37,7 +38,11 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
             "selling_price_uzs": item.selling_price_uzs,
             "cost_price": item.cost_price,
             "product_name": item.product.product_name if item.product else None,
-            "product_attributes": _format_product_attributes(item.product),
+            "product_attributes": _format_item_attributes(item),
+            "attribute_values": [
+                {"attribute_id": av.attribute_id, "attribute_name": av.attribute.attribute_name if av.attribute else None, "value": av.value}
+                for av in item.attribute_values
+            ],
             "packaged_weight_grams": item.product.packaged_weight_grams if item.product else None,
             "brand": item.product.brand if item.product else None,
             "category_name": item.product.category.category_name if item.product and item.product.category else None,
