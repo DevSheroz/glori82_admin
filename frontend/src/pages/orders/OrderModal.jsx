@@ -588,7 +588,7 @@ export default function OrderModal({
       totalCustomerCargo += Number(it.customer_cargo) || 0
     }
 
-    const serviceFee = Number(form.service_fee) || 3
+    const serviceFee = form.service_fee !== '' ? Number(form.service_fee) : 3
     const totalPrice = totalSelling + totalCustomerCargo + serviceFee
     const totalPriceUzs = usdToUzs > 0 ? totalPrice * usdToUzs : 0
     const totalPaid = (Number(form.paid_card) || 0) + (Number(form.paid_cash) || 0)
@@ -618,7 +618,7 @@ export default function OrderModal({
       paid_cash: Number(form.paid_cash) || 0,
       total_amount: totals.totalSelling || null,
       notes: form.notes || null,
-      service_fee: Number(form.service_fee) || 3,
+      service_fee: form.service_fee !== '' ? Number(form.service_fee) : 3,
       is_family_discount: form.is_family_discount,
       items: form.items
         .filter((it) => it.product_id || it.product_name || it.cost_price || it.selling_price)
@@ -737,6 +737,23 @@ export default function OrderModal({
           <div>
             <label className={labelClass}>{t('orders.modal.service_fee')}</label>
             <input name="service_fee" type="number" step="0.01" value={form.service_fee} onChange={handleChange} className={inputClass} />
+          </div>
+          <div className="sm:col-span-2 flex items-center justify-end gap-3">
+            <label htmlFor="exclude-fee" className="text-sm text-(--color-text-base) cursor-pointer select-none">
+              Exclude Service Fee
+            </label>
+            <button
+              id="exclude-fee"
+              type="button"
+              role="switch"
+              aria-checked={Number(form.service_fee) === 0}
+              onClick={() => setForm((prev) => ({ ...prev, service_fee: Number(prev.service_fee) === 0 ? '3.00' : '0' }))}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus:outline-none ${Number(form.service_fee) === 0 ? 'bg-(--color-primary)' : 'bg-(--color-border-base)'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform duration-200 mt-0.5 ${Number(form.service_fee) === 0 ? 'translate-x-4' : 'translate-x-0.5'}`}
+              />
+            </button>
           </div>
           <div className="sm:col-span-2 flex items-center justify-end gap-3">
             <label htmlFor="family-discount" className="text-sm text-(--color-text-base) cursor-pointer select-none">
@@ -1112,7 +1129,7 @@ export default function OrderModal({
             </div>
             <div className="text-right">
               <span className="text-[10px] text-(--color-text-muted) block">
-                {t('orders.modal.total_price_fee', { fee: Number(form.service_fee || 3).toFixed(0) })}
+                {t('orders.modal.total_price_fee', { fee: (form.service_fee !== '' ? Number(form.service_fee) : 3).toFixed(0) })}
               </span>
               <span className="text-sm font-bold text-(--color-primary) tabular-nums">
                 ${totals.totalPrice.toFixed(2)}
