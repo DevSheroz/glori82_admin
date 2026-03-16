@@ -29,12 +29,14 @@ async def get_metrics(db: AsyncSession) -> DashboardMetrics:
     total_products = (await db.execute(total_products_q)).scalar() or 0
 
     revenue_q = select(func.coalesce(func.sum(Order.total_amount), 0)).where(
-        Order.status == "completed"
+        Order.status == "completed",
+        Order.is_family_discount == False,
     )
     total_revenue = (await db.execute(revenue_q)).scalar() or Decimal("0")
 
     sales_count_q = select(func.count()).select_from(Order).where(
-        Order.status == "completed"
+        Order.status == "completed",
+        Order.is_family_discount == False,
     )
     sales_count = (await db.execute(sales_count_q)).scalar() or 0
 
@@ -73,7 +75,7 @@ async def get_sales_over_time(
         .select_from(Order)
         .join(OrderItem, OrderItem.order_id == Order.order_id)
         .outerjoin(Product, OrderItem.product_id == Product.product_id)
-        .where(Order.status == "completed")
+        .where(Order.status == "completed", Order.is_family_discount == False)
         .group_by(Order.order_id, date_col, Order.service_fee)
     )
     if date_from:
@@ -109,7 +111,7 @@ async def get_top_products(db: AsyncSession, limit: int = 10) -> list[TopProduct
         )
         .join(Product, OrderItem.product_id == Product.product_id)
         .join(Order, OrderItem.order_id == Order.order_id)
-        .where(Order.status == "completed")
+        .where(Order.status == "completed", Order.is_family_discount == False)
         .group_by(OrderItem.product_id, Product.product_name, Product.brand)
         .order_by(func.sum(OrderItem.selling_price * OrderItem.quantity).desc())
         .limit(limit)
@@ -136,7 +138,7 @@ async def get_top_brands(db: AsyncSession, limit: int = 10) -> list[TopBrand]:
         )
         .join(Product, OrderItem.product_id == Product.product_id)
         .join(Order, OrderItem.order_id == Order.order_id)
-        .where(Order.status == "completed")
+        .where(Order.status == "completed", Order.is_family_discount == False)
         .where(Product.brand.isnot(None))
         .where(Product.brand != "")
         .group_by(Product.brand)
@@ -168,6 +170,7 @@ async def get_unpaid_orders(db: AsyncSession) -> list[UnpaidOrder]:
         select(Order)
         .where(Order.payment_status.not_in(["paid_card", "paid_cash"]))
         .where(Order.status == "received")
+        .where(Order.is_family_discount == False)
         .options(
             selectinload(Order.items).selectinload(OrderItem.product),
             selectinload(Order.customer),
@@ -250,6 +253,8 @@ async def get_shipment_costs(db: AsyncSession) -> list[ShipmentCost]:
 
         for so in shipment.shipment_orders:
             order = so.order
+            if order.is_family_discount:
+                continue
             order_ids.add(order.order_id)
             for item in order.items:
                 if item.cost_price:
@@ -281,6 +286,7 @@ async def get_order_status_summary(db: AsyncSession) -> list[OrderStatusCount]:
     """Return order counts grouped by status."""
     query = (
         select(Order.status, func.count().label("count"))
+        .where(Order.is_family_discount == False)
         .group_by(Order.status)
         .order_by(func.count().desc())
     )
@@ -290,29 +296,44 @@ async def get_order_status_summary(db: AsyncSession) -> list[OrderStatusCount]:
 
 async def get_profit_summary(db: AsyncSession) -> ProfitSummary:
     """Return overall revenue, cost, and gross profit figures."""
-    # Total selling revenue from order items (all orders)
-    selling_q = select(func.coalesce(func.sum(OrderItem.selling_price * OrderItem.quantity), 0))
+    # Total selling revenue from order items (excluding family/friends discount orders)
+    selling_q = (
+        select(func.coalesce(func.sum(OrderItem.selling_price * OrderItem.quantity), 0))
+        .select_from(OrderItem)
+        .join(Order, OrderItem.order_id == Order.order_id)
+        .where(Order.is_family_discount == False)
+    )
     total_selling_usd = (await db.execute(selling_q)).scalar() or Decimal("0")
 
-    # Total service fees from all orders
-    service_fee_q = select(func.coalesce(func.sum(Order.service_fee), 0))
+    # Total service fees (excluding family/friends discount orders)
+    service_fee_q = (
+        select(func.coalesce(func.sum(Order.service_fee), 0))
+        .where(Order.is_family_discount == False)
+    )
     total_service_fee = (await db.execute(service_fee_q)).scalar() or Decimal("0")
 
-    # Total product cost in KRW from all order items
-    cost_q = select(func.coalesce(func.sum(OrderItem.cost_price * OrderItem.quantity), 0))
+    # Total product cost in KRW (excluding family/friends discount orders)
+    cost_q = (
+        select(func.coalesce(func.sum(OrderItem.cost_price * OrderItem.quantity), 0))
+        .select_from(OrderItem)
+        .join(Order, OrderItem.order_id == Order.order_id)
+        .where(Order.is_family_discount == False)
+    )
     total_product_cost_krw = (await db.execute(cost_q)).scalar() or Decimal("0")
 
-    # Total packaged weight across all order items (grams)
+    # Total packaged weight (excluding family/friends discount orders)
     weight_q = (
         select(func.coalesce(func.sum(Product.packaged_weight_grams * OrderItem.quantity), 0))
         .select_from(OrderItem)
         .join(Product, OrderItem.product_id == Product.product_id)
+        .join(Order, OrderItem.order_id == Order.order_id)
+        .where(Order.is_family_discount == False)
     )
     total_weight_grams = (await db.execute(weight_q)).scalar() or Decimal("0")
     total_weight_kg = Decimal(str(total_weight_grams)) / Decimal(1000)
 
-    # Total orders count
-    orders_count_q = select(func.count()).select_from(Order)
+    # Total orders count (excluding family/friends discount orders)
+    orders_count_q = select(func.count()).select_from(Order).where(Order.is_family_discount == False)
     total_orders = (await db.execute(orders_count_q)).scalar() or 0
 
     # Live currency rates
@@ -388,6 +409,8 @@ async def get_shipment_revenue(db: AsyncSession) -> list[ShipmentRevenue]:
 
         for so in shipment.shipment_orders:
             order = so.order
+            if order.is_family_discount:
+                continue
             order_ids.add(order.order_id)
             service_fee_usd += order.service_fee if order.service_fee is not None else Decimal("3.00")
             for item in order.items:
@@ -443,6 +466,7 @@ async def get_monthly_revenue(db: AsyncSession) -> list[MonthlyRevenue]:
         .select_from(Order)
         .join(OrderItem, OrderItem.order_id == Order.order_id)
         .outerjoin(Product, OrderItem.product_id == Product.product_id)
+        .where(Order.is_family_discount == False)
         .group_by(Order.order_id, month_col, Order.service_fee)
     ).subquery()
 
