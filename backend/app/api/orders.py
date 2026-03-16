@@ -142,6 +142,7 @@ def _order_to_response(order, usd_to_uzs: Decimal = Decimal(0)) -> dict:
         "customer_phone": order.customer.contact_phone if order.customer else None,
         "customer_city": order.customer.city if order.customer else None,
         "is_archived": is_archived,
+        "is_family_discount": order.is_family_discount,
         "items": items,
     }
 

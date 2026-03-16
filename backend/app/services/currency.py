@@ -36,13 +36,13 @@ async def get_rates() -> dict:
     }
 
 
-async def calculate_prices(cost_price_krw: Decimal) -> dict:
+async def calculate_prices(cost_price_krw: Decimal, markup: Decimal = MARKUP) -> dict:
     r = await get_rates()
     krw_to_usd = Decimal(str(r["krw_to_usd"]))
     usd_to_uzs = Decimal(str(r["usd_to_uzs"]))
 
     cost_in_usd = cost_price_krw * krw_to_usd
-    selling_price = (cost_in_usd * MARKUP).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    selling_price = (cost_in_usd * markup).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
     selling_price_uzs = (selling_price * usd_to_uzs).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
     return {

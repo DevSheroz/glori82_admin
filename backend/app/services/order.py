@@ -134,7 +134,12 @@ ITEM_EXTRA_FIELDS = {"product_name", "brand", "category_id", "category_name", "p
 
 
 async def _resolve_product(db: AsyncSession, item_fields: dict) -> int | None:
-    """Return an existing product_id or create a new product from inline fields."""
+    """Return an existing product_id or create a new product from inline fields.
+
+    The product's stored selling_price is always calculated at the standard 1.5x
+    markup regardless of the order's discount. The order item price (in item_fields)
+    is set by the caller and may differ.
+    """
     if item_fields.get("product_id"):
         return item_fields["product_id"]
     if not item_fields.get("product_name"):
@@ -148,26 +153,29 @@ async def _resolve_product(db: AsyncSession, item_fields: dict) -> int | None:
         category_id = cat.category_id
 
     cost_price = item_fields.get("cost_price") or 0
-    selling_price = item_fields.get("selling_price")
-    selling_price_uzs = item_fields.get("selling_price_uzs")
 
-    if cost_price and (selling_price is None or selling_price_uzs is None):
+    # Always store at standard markup in inventory
+    product_selling_price = None
+    product_selling_price_uzs = None
+    if cost_price:
         try:
-            prices = await calculate_prices(cost_price)
-            if selling_price is None:
-                selling_price = prices["selling_price"]
-            if selling_price_uzs is None:
-                selling_price_uzs = prices["selling_price_uzs"]
+            prices = await calculate_prices(cost_price)  # default MARKUP = 1.5
+            product_selling_price = prices["selling_price"]
+            product_selling_price_uzs = prices["selling_price_uzs"]
         except Exception:
-            pass
+            product_selling_price = item_fields.get("selling_price")
+            product_selling_price_uzs = item_fields.get("selling_price_uzs")
+    else:
+        product_selling_price = item_fields.get("selling_price")
+        product_selling_price_uzs = item_fields.get("selling_price_uzs")
 
     product = Product(
         product_name=item_fields["product_name"],
         brand=item_fields.get("brand") or None,
         category_id=category_id,
         cost_price=cost_price,
-        selling_price=selling_price,
-        selling_price_uzs=selling_price_uzs,
+        selling_price=product_selling_price,
+        selling_price_uzs=product_selling_price_uzs,
         packaged_weight_grams=item_fields.get("packaged_weight_grams"),
         stock_status="pre_order",
     )
@@ -189,7 +197,7 @@ async def _resolve_product(db: AsyncSession, item_fields: dict) -> int | None:
     return product.product_id
 
 
-async def _build_order_items(db: AsyncSession, items_data) -> list[OrderItem]:
+async def _build_order_items(db: AsyncSession, items_data, markup: Decimal = Decimal("1.5")) -> list[OrderItem]:
     result = []
     for item_data in items_data:
         item_fields = item_data.model_dump()
@@ -339,7 +347,8 @@ async def create_order(db: AsyncSession, data: OrderCreate) -> Order:
     if not order_dict.get("order_number"):
         order_dict["order_number"] = await _next_order_number(db)
     order = Order(**order_dict)
-    new_items = await _build_order_items(db, data.items)
+    markup = Decimal("1.0") if data.is_family_discount else Decimal("1.5")
+    new_items = await _build_order_items(db, data.items, markup=markup)
     order.items.extend(new_items)
     db.add(order)
     await db.flush()
@@ -377,7 +386,8 @@ async def update_order(db: AsyncSession, order_id: int, data: OrderUpdate) -> Or
 
     if data.items is not None:
         old_stock_items = [it for it in order.items if it.from_stock and it.product_id]
-        new_items = await _build_order_items(db, data.items)
+        markup = Decimal("1.0") if order.is_family_discount else Decimal("1.5")
+        new_items = await _build_order_items(db, data.items, markup=markup)
         if new_items or not order.items:
             await _restore_stock(db, old_stock_items)
 

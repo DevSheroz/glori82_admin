@@ -68,6 +68,7 @@ class OrderBase(BaseModel):
     paid_card: Decimal = Decimal("0")
     paid_cash: Decimal = Decimal("0")
     is_archived: bool = False
+    is_family_discount: bool = False
 
 
 class OrderCreate(BaseModel):
@@ -86,6 +87,7 @@ class OrderCreate(BaseModel):
     payment_status: PAYMENT_STATUSES = "unpaid"
     paid_card: Decimal = Decimal("0")
     paid_cash: Decimal = Decimal("0")
+    is_family_discount: bool = False
     items: list[OrderItemCreate] = []
 
 
@@ -105,6 +107,7 @@ class OrderUpdate(BaseModel):
     paid_card: Decimal | None = None
     paid_cash: Decimal | None = None
     is_archived: bool | None = None
+    is_family_discount: bool | None = None
     items: list[OrderItemCreate] | None = None
 
 

@@ -82,6 +82,7 @@ const initialForm = {
   prepay_method: 'card',
   notes: '',
   service_fee: '3.00',
+  is_family_discount: false,
   items: [{ ...blankItem }],
 }
 
@@ -146,6 +147,13 @@ export default function OrderModal({
     return map
   }, [categories])
 
+  const productMapRef = useRef(productMap)
+  const stockProductMapRef = useRef(stockProductMap)
+  const customerMapRef = useRef(customerMap)
+  useEffect(() => { productMapRef.current = productMap }, [productMap])
+  useEffect(() => { stockProductMapRef.current = stockProductMap }, [stockProductMap])
+  useEffect(() => { customerMapRef.current = customerMap }, [customerMap])
+
   useEffect(() => {
     if (!open) return
     currencyApi.getRates().then((res) => {
@@ -183,7 +191,7 @@ export default function OrderModal({
       const items =
         order.items && order.items.length > 0
           ? order.items.map((it) => {
-              const product = productMap[it.product_id] || stockProductMap[it.product_id]
+              const product = productMapRef.current[it.product_id] || stockProductMapRef.current[it.product_id]
               const weightGrams = it.packaged_weight_grams || product?.packaged_weight_grams || 0
               const qty = it.quantity ?? 1
               const totalWeightKg = weightGrams ? (weightGrams / 1000) * qty : 0
@@ -213,7 +221,7 @@ export default function OrderModal({
             })
           : [{ ...blankItem }]
 
-      const customer = order.customer_id ? customerMap[order.customer_id] : null
+      const customer = order.customer_id ? customerMapRef.current[order.customer_id] : null
 
       const paidCard = order.paid_card ?? ''
       const paidCash = order.paid_cash ?? ''
@@ -234,6 +242,7 @@ export default function OrderModal({
         prepay_method: prepayMethod,
         notes: order.notes ?? '',
         service_fee: order.service_fee ?? '3.00',
+        is_family_discount: order.is_family_discount ?? false,
         items,
       })
 
@@ -258,7 +267,7 @@ export default function OrderModal({
       setPendingStockId('')
       setPendingStockQty(1)
     }
-  }, [order, open, productMap, stockProductMap, customerMap, fetchBrands, fetchProducts])
+  }, [order, open, fetchBrands, fetchProducts])
 
   /* ── Customer handlers ── */
   const handleCustomerNameChange = (e) => {
@@ -393,13 +402,20 @@ export default function OrderModal({
       (rowOptions[index]?.products || []).find((p) => p.product_id === Number(option.value))
 
     setForm((prev) => {
+      const markup = prev.is_family_discount ? 1.0 : 1.5
       const items = prev.items.map((it, i) => {
         if (i !== index) return it
         const updated = { ...it, product_id: option.value, product_name: option.label, from_stock: false }
         if (product) {
           updated.cost_price = product.cost_price ?? ''
-          updated.selling_price = product.selling_price ?? ''
-          updated.selling_price_uzs = product.selling_price_uzs ?? ''
+          if (product.cost_price && krwToUsd > 0) {
+            const sellUsd = Number(product.cost_price) * krwToUsd * markup
+            updated.selling_price = sellUsd.toFixed(2)
+            updated.selling_price_uzs = usdToUzs > 0 ? Math.round(sellUsd * usdToUzs).toString() : (product.selling_price_uzs ?? '')
+          } else {
+            updated.selling_price = product.selling_price ?? ''
+            updated.selling_price_uzs = product.selling_price_uzs ?? ''
+          }
           if (product.packaged_weight_grams) {
             const qty = Number(it.quantity) || 1
             const totalWtKg = (product.packaged_weight_grams / 1000) * qty
@@ -424,11 +440,12 @@ export default function OrderModal({
   /* ── Item: numeric field handlers ── */
   const handleCostChange = (index, costKrw) => {
     setForm((prev) => {
+      const markup = prev.is_family_discount ? 1.0 : 1.5
       const items = prev.items.map((it, i) => {
         if (i !== index) return it
         const updated = { ...it, cost_price: costKrw }
         if (costKrw && krwToUsd > 0) {
-          const sellUsd = Number(costKrw) * krwToUsd * 1.5
+          const sellUsd = Number(costKrw) * krwToUsd * markup
           updated.selling_price = sellUsd.toFixed(2)
           if (usdToUzs > 0) {
             updated.selling_price_uzs = Math.round(sellUsd * usdToUzs).toString()
@@ -438,6 +455,23 @@ export default function OrderModal({
       })
       return { ...prev, items }
     })
+  }
+
+  const handleDiscountToggle = (checked) => {
+    const markup = checked ? 1.0 : 1.5
+    setForm((prev) => ({
+      ...prev,
+      is_family_discount: checked,
+      items: prev.items.map((item) => {
+        if (!item.cost_price || krwToUsd <= 0) return item
+        const sellUsd = Number(item.cost_price) * krwToUsd * markup
+        return {
+          ...item,
+          selling_price: sellUsd.toFixed(2),
+          selling_price_uzs: usdToUzs > 0 ? Math.round(sellUsd * usdToUzs).toString() : item.selling_price_uzs,
+        }
+      }),
+    }))
   }
 
   const handleItemField = (index, field, value) => {
@@ -503,6 +537,15 @@ export default function OrderModal({
     const qty = Math.min(Math.max(1, Number(pendingStockQty) || 1), product.stock_quantity || 999)
     const weightGrams = product.packaged_weight_grams || 0
     const totalKg = (weightGrams / 1000) * qty
+    const markup = form.is_family_discount ? 1.0 : 1.5
+    let stockSellingPrice = product.selling_price ?? ''
+    let stockSellingPriceUzs = product.selling_price_uzs ?? ''
+    if (product.cost_price && krwToUsd > 0) {
+      const sellUsd = Number(product.cost_price) * krwToUsd * markup
+      stockSellingPrice = sellUsd.toFixed(2)
+      stockSellingPriceUzs = usdToUzs > 0 ? Math.round(sellUsd * usdToUzs).toString() : stockSellingPriceUzs
+    }
+
     const newItem = {
       category_id: product.category_id ?? '',
       category_name: product.category?.category_name || categories.find((c) => c.category_id === product.category_id)?.category_name || '',
@@ -511,8 +554,8 @@ export default function OrderModal({
       product_name: product.product_name,
       quantity: qty,
       cost_price: product.cost_price ?? '',
-      selling_price: product.selling_price ?? '',
-      selling_price_uzs: product.selling_price_uzs ?? '',
+      selling_price: stockSellingPrice,
+      selling_price_uzs: stockSellingPriceUzs,
       weight_grams: weightGrams || '',
       cargo: totalKg ? (totalKg * 12).toFixed(2) : '',
       customer_cargo: totalKg ? (totalKg * 13).toFixed(2) : '',
@@ -576,6 +619,7 @@ export default function OrderModal({
       total_amount: totals.totalSelling || null,
       notes: form.notes || null,
       service_fee: Number(form.service_fee) || 3,
+      is_family_discount: form.is_family_discount,
       items: form.items
         .filter((it) => it.product_id || it.product_name || it.cost_price || it.selling_price)
         .map((it) => ({
@@ -693,6 +737,23 @@ export default function OrderModal({
           <div>
             <label className={labelClass}>{t('orders.modal.service_fee')}</label>
             <input name="service_fee" type="number" step="0.01" value={form.service_fee} onChange={handleChange} className={inputClass} />
+          </div>
+          <div className="sm:col-span-2 flex items-center justify-end gap-3">
+            <label htmlFor="family-discount" className="text-sm text-(--color-text-base) cursor-pointer select-none">
+              Family / Friends Discount
+            </label>
+            <button
+              id="family-discount"
+              type="button"
+              role="switch"
+              aria-checked={form.is_family_discount}
+              onClick={() => handleDiscountToggle(!form.is_family_discount)}
+              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full transition-colors duration-200 focus:outline-none ${form.is_family_discount ? 'bg-(--color-primary)' : 'bg-(--color-border-base)'}`}
+            >
+              <span
+                className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform duration-200 mt-0.5 ${form.is_family_discount ? 'translate-x-4' : 'translate-x-0.5'}`}
+              />
+            </button>
           </div>
         </div>
 
